@@ -1,5 +1,5 @@
 {
-    "actorOutputSchema": 1,
+    "actorOutputSchemaVersion": 1,
     "properties": {
         "schema_version": { "type": "string" },
         "type": { "type": "string" },
@@ -16,6 +16,26 @@
         "addresses": { "type": "array", "description": "Mailing and practice addresses" },
         "taxonomies": { "type": "array", "description": "Specialties and licenses" },
         "identifiers": { "type": "array", "description": "Other provider identifiers" },
-        "npi_registry_url": { "type": "string", "description": "Link to NPI Registry page" }
+        "npi_registry_url": { "type": "string", "description": "Link to NPI Registry page" },
+        "contact_enrichment": {
+            "type": "object",
+            "description": "Enriched contact information (when enrichment is enabled)",
+            "properties": {
+                "emails": { "type": "array", "description": "All email addresses found" },
+                "primary_email": { "type": "string", "description": "Primary practice email" },
+                "office_email": { "type": "string", "description": "Office/admin email" },
+                "billing_email": { "type": "string", "description": "Billing contact email" },
+                "practice_website": { "type": "string", "description": "Practice website URL" },
+                "linkedin_profile_url": { "type": "string", "description": "Provider LinkedIn profile" },
+                "facebook_url": { "type": "string", "description": "Practice Facebook page" },
+                "twitter_url": { "type": "string", "description": "Practice Twitter/X profile" },
+                "instagram_url": { "type": "string", "description": "Practice Instagram profile" },
+                "healthgrades_url": { "type": "string", "description": "Healthgrades profile URL" },
+                "vitals_url": { "type": "string", "description": "Vitals.com profile URL" },
+                "zocdoc_url": { "type": "string", "description": "Zocdoc profile URL" },
+                "website_scraped": { "type": "boolean", "description": "Whether website was successfully scraped" },
+                "enrichment_timestamp": { "type": "string", "description": "ISO timestamp of enrichment" }
+            }
+        }
     }
 }
