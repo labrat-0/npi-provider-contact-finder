@@ -12,11 +12,18 @@ Transform raw NPI provider data into actionable sales leads. Get email addresses
 
 ### **Business Value**
 
-💰 **Cost Savings**: Replace $50K+/year healthcare databases with $0.70-$1.00 per 1,000 contacts
+💰 **Cost Savings**: Replace $50K+/year healthcare databases with $0.80-$1.10 per 1,000 contacts
 📧 **Email Enrichment**: Find practice emails, office manager contacts, billing emails
 🎯 **Outreach-Ready Leads**: Get verified contacts for cold outreach, not just public NPI data
 📱 **Social Discovery**: LinkedIn, Facebook, Healthgrades, Vitals profiles
 🚀 **Scale Instantly**: Generate 10K+ healthcare leads in minutes, not months
+
+### **🔥 Technical Advantage**
+
+⚡ **Real-Time CMS API**: Direct integration with official NPPES API (daily updates) vs competitors using month-old 4GB+ file dumps
+🛠️ **Zero Setup**: No database imports, no technical expertise required vs competitors requiring "requisite technical expertise"
+📞 **Professional Support**: Full documentation and support vs CMS official "no help desk available" for file-based solutions
+✅ **Enterprise Ready**: FOIA-compliant data foundation with bulletproof legal basis
 
 ---
 
@@ -50,7 +57,7 @@ Transform raw NPI provider data into actionable sales leads. Get email addresses
 
 **Solution**: Search oncologists by state → Enrich with emails and social profiles → Export to CRM.
 
-**ROI**: $30K/year subscription replaced with $7 one-time cost (10K contacts @ $0.70/1K).
+**ROI**: $30K/year subscription replaced with $8 one-time cost (10K contacts @ $0.80/1K).
 
 **Example**:
 ```json
@@ -287,8 +294,8 @@ We charge based on how many providers you scrape, **with add-on pricing for enri
 
 | Tier | Base Provider Data | + Email Enrichment | + LinkedIn Enrichment | + Full Enrichment |
 |------|-------------------|-------------------|----------------------|-------------------|
-| **Standard** | $0.70 / 1,000 contacts | +$0.30 / 1,000 | +$0.50 / 1,000 | +$0.80 / 1,000 |
-| **Example: 1K contacts** | $0.70 | $1.00 | $1.20 | $1.50 |
+| **Standard** | $0.80 / 1,000 contacts | +$0.30 / 1,000 | +$0.50 / 1,000 | +$0.80 / 1,000 |
+| **Example: 1K contacts** | $0.80 | $1.10 | $1.30 | $1.60 |
 | **Example: 10K contacts** | $7.00 | $10.00 | $12.00 | $15.00 |
 | **Example: 100K contacts** | $70.00 | $100.00 | $120.00 | $150.00 |
 
@@ -297,7 +304,7 @@ We charge based on how many providers you scrape, **with add-on pricing for enri
 **Your Use Case**: Generate 5,000 cardiology leads in California with emails
 
 **Cost Breakdown**:
-- Base NPI data: 5,000 contacts × $0.70/1K = **$3.50**
+- Base NPI data: 5,000 contacts × $0.80/1K = **$4.00**
 - Email enrichment: 5,000 contacts × $0.30/1K = **$1.50**
 - **Total**: **$5.00**
 
