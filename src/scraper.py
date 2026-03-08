@@ -91,7 +91,7 @@ def _normalize_provider(raw: dict[str, Any]) -> ProviderRecord:
     other_names = []
     for name in raw.get("other_names", []):
         other_names.append(OtherNameRecord(
-            type=name.get("type", ""),
+            name_type=name.get("type", ""),
             code=name.get("code", ""),
             first_name=_clean(name.get("first_name")),
             last_name=_clean(name.get("last_name")),

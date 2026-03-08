@@ -117,7 +117,7 @@ class IdentifierRecord(BaseModel):
 
 class OtherNameRecord(BaseModel):
     """Other names used by the provider."""
-    type: str = ""
+    name_type: str = ""
     code: str = ""
     first_name: str = ""
     last_name: str = ""
@@ -179,7 +179,7 @@ class ProviderRecord(BaseModel):
     """Normalized NPI provider record with contact enrichment."""
 
     schema_version: str = "2.0"  # Updated for contact finder
-    type: str = "provider_with_contacts"
+    record_type: str = "provider_with_contacts"
 
     # NPI
     npi_number: str = ""

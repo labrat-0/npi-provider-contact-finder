@@ -2,7 +2,7 @@
     "actorSpecification": 1,
     "fields": {
         "schema_version": { "type": "string" },
-        "type": { "type": "string" },
+        "record_type": { "type": "string" },
         "npi_number": { "type": "string" },
         "enumeration_type": { "type": "string" },
         "first_name": { "type": "string" },
