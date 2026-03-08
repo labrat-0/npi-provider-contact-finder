@@ -1,41 +1,12 @@
 {
     "actorOutputSchemaVersion": 1,
+    "title": "NPI Provider Contact Finder Results",
+    "description": "Healthcare provider contacts with email enrichment from NPPES NPI Registry.",
     "properties": {
-        "schema_version": { "type": "string" },
-        "type": { "type": "string" },
-        "npi_number": { "type": "string", "description": "10-digit NPI number" },
-        "enumeration_type": { "type": "string", "description": "NPI-1 (individual) or NPI-2 (organization)" },
-        "first_name": { "type": "string", "description": "Provider first name" },
-        "last_name": { "type": "string", "description": "Provider last name" },
-        "credential": { "type": "string", "description": "Credentials (MD, DO, NP, etc.)" },
-        "organization_name": { "type": "string", "description": "Organization name (NPI-2)" },
-        "primary_specialty": { "type": "string", "description": "Primary taxonomy/specialty" },
-        "practice_address_city": { "type": "string" },
-        "practice_address_state": { "type": "string" },
-        "status": { "type": "string", "description": "A=Active, D=Deactivated" },
-        "addresses": { "type": "array", "description": "Mailing and practice addresses" },
-        "taxonomies": { "type": "array", "description": "Specialties and licenses" },
-        "identifiers": { "type": "array", "description": "Other provider identifiers" },
-        "npi_registry_url": { "type": "string", "description": "Link to NPI Registry page" },
-        "contact_enrichment": {
-            "type": "object",
-            "description": "Enriched contact information (when enrichment is enabled)",
-            "properties": {
-                "emails": { "type": "array", "description": "All email addresses found" },
-                "primary_email": { "type": "string", "description": "Primary practice email" },
-                "office_email": { "type": "string", "description": "Office/admin email" },
-                "billing_email": { "type": "string", "description": "Billing contact email" },
-                "practice_website": { "type": "string", "description": "Practice website URL" },
-                "linkedin_profile_url": { "type": "string", "description": "Provider LinkedIn profile" },
-                "facebook_url": { "type": "string", "description": "Practice Facebook page" },
-                "twitter_url": { "type": "string", "description": "Practice Twitter/X profile" },
-                "instagram_url": { "type": "string", "description": "Practice Instagram profile" },
-                "healthgrades_url": { "type": "string", "description": "Healthgrades profile URL" },
-                "vitals_url": { "type": "string", "description": "Vitals.com profile URL" },
-                "zocdoc_url": { "type": "string", "description": "Zocdoc profile URL" },
-                "website_scraped": { "type": "boolean", "description": "Whether website was successfully scraped" },
-                "enrichment_timestamp": { "type": "string", "description": "ISO timestamp of enrichment" }
-            }
+        "results": {
+            "type": "string",
+            "title": "Dataset Results",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
         }
     }
 }
