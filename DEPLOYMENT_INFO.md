@@ -50,18 +50,18 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 
 | Tier | Base NPI Data | + Email Enrichment | + LinkedIn | + Full Enrichment |
 |------|---------------|-------------------|------------|-------------------|
-| **Standard** | $0.80/1K | $1.10/1K | $1.30/1K | $1.60/1K |
-| **1K contacts** | $0.80 | $1.10 | $1.30 | $1.60 |
-| **10K contacts** | $8.00 | $11.00 | $13.00 | $16.00 |
-| **100K contacts** | $80.00 | $110.00 | $130.00 | $160.00 |
+| **Standard** | $0.70/1K | $1.00/1K | $1.20/1K | $1.50/1K |
+| **1K contacts** | $0.70 | $1.00 | $1.20 | $1.50 |
+| **10K contacts** | $7.00 | $10.00 | $12.00 | $15.00 |
+| **100K contacts** | $70.00 | $100.00 | $120.00 | $150.00 |
 
 **Pricing Calculator**:
 
 **Example Use Case**: Generate 5,000 cardiology leads in California with emails
 
-- Base NPI data: 5,000 × $0.80/1K = $4.00
+- Base NPI data: 5,000 × $0.70/1K = $3.50
 - Email enrichment: 5,000 × $0.30/1K = $1.50
-- **Total**: **$5.50**
+- **Total**: **$5.00**
 
 **Compare to Alternatives**:
 
@@ -77,7 +77,7 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 ## 📱 Social Media Preview Text
 
 ```
-🚀 NPI Provider Contact Finder: Real-time CMS API access + contact enrichment. Skip 4GB+ file downloads. Generate healthcare leads with verified emails & LinkedIn profiles. Replace $50K/year databases with $0.80-$1.60/1K pricing. Try free ⬇️
+🚀 NPI Provider Contact Finder: Real-time CMS API access + contact enrichment. Skip 4GB+ file downloads. Generate healthcare leads with verified emails & LinkedIn profiles. Replace $50K/year databases with $0.70-$1.50/1K pricing. Try free ⬇️
 ```
 
 ---
@@ -141,7 +141,7 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 
 | Feature | Contact Finder | IQVIA | Definitive Healthcare | Basic NPI Scraper |
 |---------|---------------|-------|----------------------|-------------------|
-| **Pricing** | $0.80-$1.60/1K | $50K/year | $35K/year | $0.50/1K |
+| **Pricing** | $0.70-$1.50/1K | $50K/year | $35K/year | $0.50/1K |
 | **Email Enrichment** | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No |
 | **LinkedIn Profiles** | ✅ Yes | ❌ No | ✅ Limited | ❌ No |
 | **Social Media Links** | ✅ Yes | ❌ No | ❌ No | ❌ No |
@@ -205,7 +205,7 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 ### 5. **Pricing** (in Pricing tab):
 
 **Base Pricing**:
-- Pay-Per-Event: $0.0008 per provider contact ($0.80 per 1,000 contacts)
+- Pay-Per-Event: $0.0007 per provider contact ($0.70 per 1,000 contacts)
 
 **With Enrichment Add-ons**:
 - Email enrichment: +$0.0003 per contact ($0.30 per 1,000)
@@ -213,9 +213,9 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 - Social media enrichment: +$0.0002 per contact ($0.20 per 1,000)
 
 **Recommended Tier Examples**:
-- Standard (base NPI data only): $0.80 / 1,000 contacts
-- Premium (with email enrichment): $1.10 / 1,000 contacts
-- Ultra-Premium (full enrichment): $1.60 / 1,000 contacts
+- Standard (base NPI data only): $0.70 / 1,000 contacts
+- Premium (with email enrichment): $1.00 / 1,000 contacts
+- Ultra-Premium (full enrichment): $1.50 / 1,000 contacts
 
 ### 6. **Icon/Avatar**: 
 Upload healthcare-themed icon:
@@ -315,7 +315,7 @@ Real-time CMS API access vs competitors using month-old 4GB+ file dumps.
 
 Generate healthcare sales leads with verified emails & LinkedIn profiles.
 
-Replace $50K/year databases with $0.80-$1.60/1K pricing 👇
+Replace $50K/year databases with $0.70-$1.50/1K pricing 👇
 ```
 
 **Tweet 2** (Technical Advantage):
@@ -339,7 +339,7 @@ Real-time CMS API access vs competitors using month-old 4GB+ file dumps.
 
 Generate healthcare sales leads with verified emails & LinkedIn profiles.
 
-Replace $50K/year databases with $0.80-$1.60/1K pricing 👇
+Replace $50K/year databases with $0.70-$1.50/1K pricing 👇
 ```
 
 **Tweet 2** (Technical Advantage):
@@ -361,7 +361,7 @@ Technical superiority matters 💪
 
 ✅ Solution: NPI Contact Finder
 
-• $0.80-$1.60 per 1,000 contacts
+• $0.70-$1.50 per 1,000 contacts
 • Email enrichment from practice websites
 • LinkedIn + social media profiles
 • 6M+ US providers
@@ -378,7 +378,7 @@ Old way:
 • Manual research: 50 hours @ $75/hr = $3,750
 
 New way:
-• NPI Contact Finder: $5.50
+• NPI Contact Finder: $5.00
 • Time: 15 minutes
 
 Save 99.99% + weeks of work
@@ -416,7 +416,7 @@ So I built an Apify actor that:
 ✅ Enriches with emails from practice websites
 ✅ Finds LinkedIn + social media profiles
 ✅ Exports to CRM-ready formats
-✅ Costs $0.80-$1.60 per 1,000 contacts
+✅ Costs $0.70-$1.50 per 1,000 contacts
 
 **99.9% cheaper than enterprise databases.**
 
@@ -442,6 +442,6 @@ Who else is frustrated with expensive healthcare databases? 💬
 **Generated on**: 2026-03-07  
 **For Actor**: NPI Provider Contact Finder  
 **Repository**: https://github.com/labrat-0/npi-provider-contact-finder  
-**Pricing**: $0.80-$1.60 per 1,000 contacts (base + enrichment add-ons)  
+**Pricing**: $0.70-$1.50 per 1,000 contacts (base + enrichment add-ons)  
 **Category**: Lead Generation (Healthcare focus)  
 **Competitive Positioning**: 99.9% cheaper than IQVIA/Definitive Healthcare, with contact enrichment layer that basic NPI scrapers don't offer
