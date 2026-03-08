@@ -1,0 +1,21 @@
+{
+    "actorOutputSchema": 1,
+    "properties": {
+        "schema_version": { "type": "string" },
+        "type": { "type": "string" },
+        "npi_number": { "type": "string", "description": "10-digit NPI number" },
+        "enumeration_type": { "type": "string", "description": "NPI-1 (individual) or NPI-2 (organization)" },
+        "first_name": { "type": "string", "description": "Provider first name" },
+        "last_name": { "type": "string", "description": "Provider last name" },
+        "credential": { "type": "string", "description": "Credentials (MD, DO, NP, etc.)" },
+        "organization_name": { "type": "string", "description": "Organization name (NPI-2)" },
+        "primary_specialty": { "type": "string", "description": "Primary taxonomy/specialty" },
+        "practice_address_city": { "type": "string" },
+        "practice_address_state": { "type": "string" },
+        "status": { "type": "string", "description": "A=Active, D=Deactivated" },
+        "addresses": { "type": "array", "description": "Mailing and practice addresses" },
+        "taxonomies": { "type": "array", "description": "Specialties and licenses" },
+        "identifiers": { "type": "array", "description": "Other provider identifiers" },
+        "npi_registry_url": { "type": "string", "description": "Link to NPI Registry page" }
+    }
+}

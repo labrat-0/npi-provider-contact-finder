@@ -1,0 +1,171 @@
+{
+    "title": "NPI Provider Contact Finder - Input",
+    "description": "Generate healthcare sales leads with provider contact information. Find doctor emails, practice websites, LinkedIn profiles, and social media from NPPES NPI Registry. Perfect for medical device sales, pharma outreach, healthcare marketing.",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "mode": {
+            "sectionCaption": "Scraping Mode",
+            "sectionDescription": "Select what to do: search individual providers, look up by NPI number, search organizations, or search by specialty.",
+            "title": "Scraping mode",
+            "type": "string",
+            "description": "Select what to do: search providers, get by NPI number, search organizations, or search by specialty.",
+            "editor": "select",
+            "enum": ["search_providers", "get_provider", "search_organizations", "search_by_specialty"],
+            "enumTitles": [
+                "Search Providers (by name, location)",
+                "Get Provider (by NPI number)",
+                "Search Organizations (hospitals, clinics, groups)",
+                "Search by Specialty (cardiology, oncology, etc.)"
+            ],
+            "default": "search_providers"
+        },
+        "query": {
+            "sectionCaption": "Search Filters",
+            "sectionDescription": "Provide search criteria based on your selected mode.",
+            "title": "Search query",
+            "type": "string",
+            "description": "General search term. Used as last name (search_providers), organization name (search_organizations), or specialty (search_by_specialty) depending on mode.",
+            "editor": "textfield",
+            "prefill": "Smith"
+        },
+        "npiNumber": {
+            "title": "NPI Number",
+            "type": "string",
+            "description": "10-digit NPI number for direct lookup (get_provider mode).",
+            "editor": "textfield"
+        },
+        "firstName": {
+            "title": "First Name",
+            "type": "string",
+            "description": "Provider's first name (individual providers only).",
+            "editor": "textfield"
+        },
+        "lastName": {
+            "title": "Last Name",
+            "type": "string",
+            "description": "Provider's last name (individual providers only).",
+            "editor": "textfield"
+        },
+        "organizationName": {
+            "title": "Organization Name",
+            "type": "string",
+            "description": "Organization name (e.g., 'Mayo Clinic', 'Johns Hopkins'). Used in search_organizations mode.",
+            "editor": "textfield"
+        },
+        "taxonomyDescription": {
+            "title": "Specialty / Taxonomy",
+            "type": "string",
+            "description": "Specialty or taxonomy description (e.g., 'Cardiology', 'Internal Medicine', 'Oncology'). Used in search_by_specialty mode.",
+            "editor": "textfield"
+        },
+        "city": {
+            "sectionCaption": "Location Filters",
+            "sectionDescription": "Narrow results by location.",
+            "title": "City",
+            "type": "string",
+            "description": "Filter by city.",
+            "editor": "textfield"
+        },
+        "state": {
+            "title": "State",
+            "type": "string",
+            "description": "Two-letter state code (e.g., 'CA', 'NY', 'TX').",
+            "editor": "textfield"
+        },
+        "postalCode": {
+            "title": "Postal Code",
+            "type": "string",
+            "description": "ZIP/postal code filter.",
+            "editor": "textfield"
+        },
+        "countryCode": {
+            "title": "Country Code",
+            "type": "string",
+            "description": "Two-letter country code (default: US).",
+            "editor": "textfield"
+        },
+        "enumerationType": {
+            "title": "Provider Type",
+            "type": "string",
+            "description": "Filter by NPI type.",
+            "editor": "select",
+            "enum": ["", "NPI-1", "NPI-2"],
+            "enumTitles": [
+                "All types",
+                "NPI-1 (Individual providers)",
+                "NPI-2 (Organizations)"
+            ]
+        },
+        "maxResults": {
+            "sectionCaption": "Output Settings",
+            "sectionDescription": "Control how many results are returned.",
+            "title": "Max results",
+            "type": "integer",
+            "description": "Maximum number of providers to return (1-1000). Free users are limited to 25 per run.",
+            "default": 100,
+            "prefill": 10,
+            "minimum": 1,
+            "maximum": 1000
+        },
+        "requestIntervalSecs": {
+            "sectionCaption": "Advanced Settings",
+            "sectionDescription": "Configure request behavior.",
+            "title": "Request interval (seconds)",
+            "type": "number",
+            "description": "Minimum seconds between API requests.",
+            "default": 0.5,
+            "minimum": 0.2,
+            "maximum": 5
+        },
+        "timeoutSecs": {
+            "title": "HTTP timeout (seconds)",
+            "type": "integer",
+            "description": "Timeout for API requests.",
+            "default": 30,
+            "minimum": 10,
+            "maximum": 120
+        },
+        "maxRetries": {
+            "title": "Max retries",
+            "type": "integer",
+            "description": "Maximum retry attempts on failed requests.",
+            "default": 5,
+            "minimum": 0,
+            "maximum": 10
+        },
+        "enableEmailEnrichment": {
+            "sectionCaption": "Contact Enrichment",
+            "sectionDescription": "Enhance provider data with contact information from practice websites and social media. Increases runtime but provides actionable leads.",
+            "title": "Enable Email Enrichment",
+            "type": "boolean",
+            "description": "Scrape practice websites for email addresses (office, billing, manager contacts). Adds $0.30/1K contacts to pricing.",
+            "default": false,
+            "editor": "checkbox"
+        },
+        "enableLinkedInEnrichment": {
+            "title": "Enable LinkedIn Enrichment",
+            "type": "boolean",
+            "description": "Search for provider LinkedIn profiles. Useful for B2B outreach and relationship building. Adds $0.50/1K contacts to pricing.",
+            "default": false,
+            "editor": "checkbox"
+        },
+        "enableSocialMediaEnrichment": {
+            "title": "Enable Social Media Enrichment",
+            "type": "boolean",
+            "description": "Extract all social media links (Facebook, Twitter, Instagram, Healthgrades, Vitals, Zocdoc). Adds $0.20/1K contacts to pricing.",
+            "default": false,
+            "editor": "checkbox"
+        },
+        "emailEnrichmentTimeout": {
+            "title": "Email Enrichment Timeout (seconds)",
+            "type": "integer",
+            "description": "Timeout for scraping each practice website. Lower = faster but may miss emails. Higher = slower but more thorough.",
+            "default": 10,
+            "minimum": 5,
+            "maximum": 30
+        }
+    },
+    "required": ["mode"],
+    "additionalProperties": false
+}
