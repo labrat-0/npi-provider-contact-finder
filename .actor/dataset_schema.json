@@ -1,5 +1,5 @@
 {
-    "actorDatasetSchema": 1,
+    "actorSpecification": 1,
     "fields": {
         "schema_version": { "type": "string" },
         "type": { "type": "string" },
@@ -31,6 +31,30 @@
         "primary_specialty": { "type": "string" },
         "practice_address_city": { "type": "string" },
         "practice_address_state": { "type": "string" },
-        "npi_registry_url": { "type": "string" }
+        "npi_registry_url": { "type": "string" },
+        "contact_enrichment": {
+            "type": "object",
+            "properties": {
+                "emails": { "type": "array" },
+                "primary_email": { "type": "string" },
+                "office_email": { "type": "string" },
+                "billing_email": { "type": "string" },
+                "practice_website": { "type": "string" },
+                "website_scraped": { "type": "boolean" },
+                "website_scrape_error": { "type": "string" },
+                "linkedin_profile_url": { "type": "string" },
+                "facebook_url": { "type": "string" },
+                "twitter_url": { "type": "string" },
+                "instagram_url": { "type": "string" },
+                "healthgrades_url": { "type": "string" },
+                "vitals_url": { "type": "string" },
+                "zocdoc_url": { "type": "string" },
+                "office_manager_name": { "type": "string" },
+                "office_manager_email": { "type": "string" },
+                "billing_contact_email": { "type": "string" },
+                "enrichment_timestamp": { "type": "string" },
+                "enrichment_sources": { "type": "array" }
+            }
+        }
     }
 }
