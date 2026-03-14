@@ -10,7 +10,7 @@ import logging
 import re
 from datetime import datetime
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlencode
 
 import httpx
 from bs4 import BeautifulSoup
@@ -100,6 +100,129 @@ def _classify_emails(emails: list[str]) -> dict[str, str]:
     return classified
 
 
+# Domains to skip when evaluating DuckDuckGo search results
+# These are directories / aggregators, not practice websites
+_DIRECTORY_DOMAINS = frozenset([
+    'healthgrades.com', 'vitals.com', 'zocdoc.com', 'doximity.com',
+    'webmd.com', 'ratemds.com', 'yelp.com', 'yellowpages.com',
+    'betterdoctor.com', 'castlighthealth.com', 'usnews.com',
+    'npiprofile.com', 'npino.com', 'medicare.gov', 'cms.gov',
+    'facebook.com', 'twitter.com', 'x.com', 'linkedin.com',
+    'instagram.com', 'bing.com', 'google.com', 'duckduckgo.com',
+    'wikipedia.org', 'wikimedia.org',
+])
+
+
+async def _discover_practice_website(
+    provider_name: str,
+    city: str,
+    state: str,
+    client: httpx.AsyncClient,
+    rate_limiter: RateLimiter,
+    timeout: int = 10,
+) -> str:
+    """
+    Discover a practice website URL using DuckDuckGo HTML search.
+
+    Args:
+        provider_name: Provider full name (individual) or organization name
+        city: Practice city
+        state: Practice state abbreviation (e.g. "NY")
+        client: HTTP client
+        rate_limiter: Rate limiter
+        timeout: Request timeout in seconds
+
+    Returns:
+        Practice website URL if found, empty string otherwise
+    """
+    if not provider_name:
+        return ""
+
+    # Build a specific search query
+    query_parts = [provider_name]
+    if city:
+        query_parts.append(city)
+    if state:
+        query_parts.append(state)
+    query_parts.append("medical practice")
+    query = " ".join(query_parts)
+
+    search_url = "https://html.duckduckgo.com/html/?" + urlencode({"q": query})
+
+    try:
+        await rate_limiter.wait()
+
+        response = await client.get(
+            search_url,
+            timeout=timeout,
+            follow_redirects=True,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+        )
+
+        if response.status_code != 200:
+            logger.warning(
+                f"DuckDuckGo search returned HTTP {response.status_code} for query: {query}"
+            )
+            return ""
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # DuckDuckGo HTML results use <a class="result__url"> or <a class="result__a">
+        # We iterate result links and skip known directory domains
+        for result in soup.select("a.result__a"):
+            href = result.get("href", "")
+            if not href or href.startswith("#"):
+                continue
+
+            # DuckDuckGo wraps redirect URLs; extract the real URL from uddg param
+            if "duckduckgo.com" in href and "uddg=" in href:
+                from urllib.parse import parse_qs
+                parsed = urlparse(href)
+                uddg = parse_qs(parsed.query).get("uddg", [""])
+                href = uddg[0] if uddg[0] else href
+
+            try:
+                parsed_href = urlparse(href)
+                domain = parsed_href.netloc.lower().lstrip("www.")
+            except Exception:
+                continue
+
+            if not domain:
+                continue
+
+            # Skip directory/aggregator sites
+            if any(domain == d or domain.endswith("." + d) for d in _DIRECTORY_DOMAINS):
+                continue
+
+            # Must be http/https
+            if parsed_href.scheme not in ("http", "https"):
+                continue
+
+            logger.info(f"Website discovery found: {href} for provider {provider_name}")
+            return href
+
+        logger.info(f"Website discovery: no result found for {provider_name} in {city}, {state}")
+        return ""
+
+    except httpx.TimeoutException:
+        logger.warning(f"Timeout during website discovery for {provider_name}")
+        return ""
+    except httpx.HTTPError as e:
+        logger.warning(f"HTTP error during website discovery for {provider_name}: {e}")
+        return ""
+    except Exception as e:
+        logger.error(f"Unexpected error during website discovery for {provider_name}: {e}")
+        return ""
+
+
 async def enrich_provider_contacts(
     provider_data: dict[str, Any],
     client: httpx.AsyncClient,
@@ -125,39 +248,94 @@ async def enrich_provider_contacts(
     enrichment = ContactEnrichment(
         enrichment_timestamp=datetime.utcnow().isoformat() + 'Z'
     )
-    
-    # Extract practice website from addresses (phone records sometimes have it)
-    # Or from endpoints
+
+    npi = provider_data.get('npi_number', '')
+
+    # --- Step 1: Check if provider already has a website URL in endpoints ---
     practice_website = ""
-    
-    # Check addresses for websites in fax/phone fields (sometimes providers put URLs there)
-    for addr in provider_data.get('addresses', []):
-        if addr.get('address_purpose') == 'LOCATION':
-            # NPPES doesn't store websites in address records, but we can construct search URLs
-            pass
-    
-    # For this implementation, we'll use Google search or direct website construction
-    # In production, you'd want to:
-    # 1. Search Google for "[provider name] [city] [state] medical practice"
-    # 2. Extract website from search results
-    # 3. Scrape that website
-    
-    # For now, we'll demonstrate the enrichment structure without actual HTTP calls
-    # to avoid external dependencies during initial build
-    
-    # PLACEHOLDER: In production, implement website discovery + scraping here
-    # Example implementation would be:
-    # 1. Build search query from provider name + address
-    # 2. Search Google or use a search API
-    # 3. Extract website URL from results
-    # 4. Scrape website for emails and social links
-    
-    logger.info(f"Contact enrichment for NPI {provider_data.get('npi_number')}: Website discovery not yet implemented")
-    
-    enrichment.website_scraped = False
-    enrichment.website_scrape_error = "Website discovery feature coming soon"
-    enrichment.enrichment_sources = ["placeholder"]
-    
+    for endpoint in provider_data.get('endpoints', []):
+        ep_type = endpoint.get('endpoint_type_description', '').lower()
+        ep_value = endpoint.get('endpoint', '')
+        if ep_value and ('http' in ep_value or 'www.' in ep_value):
+            parsed = urlparse(ep_value if '://' in ep_value else 'https://' + ep_value)
+            if parsed.scheme in ('http', 'https'):
+                practice_website = ep_value
+                logger.info(f"NPI {npi}: using website from endpoints field: {practice_website}")
+                break
+
+    # --- Step 2: Discover website via search if not already found ---
+    if not practice_website:
+        # Build provider name for search query
+        first = provider_data.get('first_name', '')
+        last = provider_data.get('last_name', '')
+        org = provider_data.get('organization_name', '')
+        provider_name = (f"{first} {last}".strip()) if (first or last) else org
+
+        # Find practice city/state from LOCATION address
+        city = ''
+        state = ''
+        for addr in provider_data.get('addresses', []):
+            if addr.get('address_purpose') == 'LOCATION':
+                city = addr.get('city', '')
+                state = addr.get('state', '')
+                break
+        # Fallback to any address
+        if not city and provider_data.get('addresses'):
+            city = provider_data['addresses'][0].get('city', '')
+            state = provider_data['addresses'][0].get('state', '')
+
+        if provider_name:
+            practice_website = await _discover_practice_website(
+                provider_name=provider_name,
+                city=city,
+                state=state,
+                client=client,
+                rate_limiter=rate_limiter,
+                timeout=timeout,
+            )
+
+    # --- Step 3: Scrape the discovered website ---
+    if practice_website:
+        enrichment = await enrich_provider_website(
+            website_url=practice_website,
+            client=client,
+            rate_limiter=rate_limiter,
+            timeout=timeout,
+            enable_social=enable_social,
+        )
+        # Preserve the enrichment timestamp set above (enrich_provider_website sets its own)
+        # Ensure enrichment_sources includes the discovered URL
+        if practice_website not in enrichment.enrichment_sources:
+            enrichment.enrichment_sources = [practice_website] + enrichment.enrichment_sources
+
+        # Search for LinkedIn profile if requested and not already found
+        if enable_linkedin and not enrichment.linkedin_profile_url:
+            first = provider_data.get('first_name', '')
+            last = provider_data.get('last_name', '')
+            org = provider_data.get('organization_name', '')
+            provider_name = (f"{first} {last}".strip()) if (first or last) else org
+            credential = provider_data.get('credential', '')
+            city = ''
+            state_val = ''
+            for addr in provider_data.get('addresses', []):
+                if addr.get('address_purpose') == 'LOCATION':
+                    city = addr.get('city', '')
+                    state_val = addr.get('state', '')
+                    break
+            linkedin_url = await search_linkedin_profile(
+                provider_name=provider_name,
+                city=city,
+                state=state_val,
+                credential=credential,
+                client=client,
+            )
+            if linkedin_url:
+                enrichment.linkedin_profile_url = linkedin_url
+    else:
+        enrichment.website_scraped = False
+        enrichment.website_scrape_error = "No practice website found"
+        logger.info(f"Contact enrichment for NPI {npi}: no website discovered")
+
     return enrichment
 
 
@@ -229,7 +407,8 @@ async def enrich_provider_website(
         enrichment.website_scraped = True
         enrichment.enrichment_sources = [website_url]
         
-        logger.info(f"Enriched {website_url}: {len(emails)} emails, {len(social_urls) if enable_social else 0} social links")
+        social_count = len(social_urls) if enable_social else 0
+        logger.info(f"Enriched {website_url}: {len(emails)} emails, {social_count} social links")
         
     except httpx.TimeoutException:
         enrichment.website_scrape_error = "Timeout"
