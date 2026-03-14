@@ -289,6 +289,38 @@ The CSV file should have a column named `npi`, `npi_number`, or `NPI` — or jus
 
 ---
 
+## Honest Expectations: Email Enrichment
+
+Direct email addresses are genuinely hard to find for healthcare providers. Here's what to expect:
+
+### Why emails are often missing
+
+- Most solo providers and small practices don't publish a direct email on their website — they use contact forms instead
+- NPPES itself doesn't store email addresses, so every email found is scraped from the practice website
+- Some providers have no discoverable website at all
+
+### What you will reliably get
+
+| Data Point | Availability |
+|------------|-------------|
+| Practice name, address, phone | Near 100% (from NPPES directly) |
+| Practice website URL | Medium — depends on whether the provider has a web presence |
+| Office/billing email | Low-medium — only when publicly listed on their website |
+| LinkedIn profile | Medium — most providers have a LinkedIn presence |
+| Social media links (Healthgrades, Vitals, etc.) | Medium-high — directory profiles are common |
+
+### When email enrichment works best
+
+- **Group practices and hospitals** — larger organizations are more likely to publish contact emails
+- **Specialists in private practice** — often have their own websites with contact info
+- **Organizations (NPI-2)** — clinics and health systems publish admin emails more frequently than individual providers
+
+### When to use other fields instead
+
+If direct emails are sparse for your use case, the **phone number** (from NPPES), **practice website**, and **LinkedIn profile** are often more reliable starting points for outreach.
+
+---
+
 ## Output
 
 ### Base Provider Data (from NPPES)
