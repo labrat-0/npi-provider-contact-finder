@@ -187,7 +187,7 @@ async def enrich_provider_website(
     )
     
     try:
-        await rate_limiter.acquire()
+        await rate_limiter.wait()
         
         response = await client.get(
             website_url,
