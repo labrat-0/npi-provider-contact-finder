@@ -10,6 +10,7 @@ from typing import Any, AsyncGenerator
 
 import httpx
 
+from .enrichment import enrich_provider_contacts
 from .models import (
     AddressRecord,
     EndpointRecord,
@@ -272,6 +273,24 @@ class NPIProviderScraper:
                 if count >= self.config.max_results:
                     break
                 record = _normalize_provider(raw_provider)
+
+                if self.config.enable_email_enrichment:
+                    try:
+                        enrichment = await enrich_provider_contacts(
+                            provider_data=raw_provider,
+                            client=self.client,
+                            rate_limiter=self.rate_limiter,
+                            timeout=self.config.email_enrichment_timeout,
+                            enable_linkedin=self.config.enable_linkedin_enrichment,
+                            enable_social=self.config.enable_social_media_enrichment,
+                        )
+                        record.contact_enrichment = enrichment
+                    except Exception as e:
+                        logger.error(
+                            f"Enrichment failed for NPI {record.npi_number}: {e}"
+                        )
+                        # Leave contact_enrichment as None — don't crash the scraper
+
                 yield record.model_dump()
                 count += 1
 
