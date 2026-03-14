@@ -15,7 +15,8 @@ Transform raw NPI provider data into actionable sales leads. Get email addresses
 1. Go to **Apify Console → Storage → Key-Value Stores**
 2. Click **+ Create new store** → give it a name
 3. Click **+ Add record** → upload your `.csv` file
-4. Click the record → copy the **Public URL**
+4. Find your file in the store → click the **🔗 icon** next to it to copy the direct URL
+   > Make sure the URL starts with `api.apify.com` — **not** `console.apify.com`. The console URL is just the web page and will not work.
 5. Set mode to `bulk_lookup`, paste the URL into the `npiFile` field, and run
 
 **CSV format** — use a column named `npi`, `npi_number`, or `NPI`, or just one NPI per row:
