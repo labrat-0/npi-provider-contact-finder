@@ -6,6 +6,40 @@ Transform raw NPI provider data into actionable sales leads. Get email addresses
 
 ---
 
+## 🆕 New Feature: Bulk Upload (CSV or JSON)
+
+**Already have a list of NPI numbers?** Upload your CSV or paste a JSON array and enrich your entire list in one run — no manual lookups needed.
+
+### How to upload a CSV file:
+
+1. Go to **Apify Console → Storage → Key-Value Stores**
+2. Click **+ Create new store** → give it a name
+3. Click **+ Add record** → upload your `.csv` file
+4. Click the record → copy the **Public URL**
+5. Set mode to `bulk_lookup`, paste the URL into the `npiFile` field, and run
+
+**CSV format** — use a column named `npi`, `npi_number`, or `NPI`, or just one NPI per row:
+```
+npi
+1871538041
+1932102168
+1245319599
+```
+
+**Or skip the file entirely** — paste a small list directly as a JSON array:
+```json
+{
+    "mode": "bulk_lookup",
+    "npiNumbers": ["1871538041", "1932102168", "1245319599"],
+    "enableEmailEnrichment": true,
+    "enableLinkedInEnrichment": true
+}
+```
+
+All enrichment options (email, LinkedIn, social media) work the same as any other mode.
+
+---
+
 ## What does it do?
 
 **NPI Provider Contact Finder** enhances basic NPI provider lookups with contact enrichment. Search the NPPES registry for providers, then automatically scrape practice websites for emails, office manager contacts, and social media profiles.
