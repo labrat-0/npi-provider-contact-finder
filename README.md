@@ -15,6 +15,7 @@ Transform raw NPI provider data into actionable sales leads. Get email addresses
 💰 **Cost Savings**: Replace $50K+/year healthcare databases with $0.70-$1.00 per 1,000 contacts
 📧 **Email Enrichment**: Find practice emails, office manager contacts, billing emails
 🎯 **Outreach-Ready Leads**: Get verified contacts for cold outreach, not just public NPI data
+📂 **Bulk Upload**: Already have NPI numbers? Upload a CSV or paste a JSON array — enrich your whole list in one run
 📱 **Social Discovery**: LinkedIn, Facebook, Healthgrades, Vitals profiles
 🚀 **Scale Instantly**: Generate 10K+ healthcare leads in minutes, not months
 
@@ -91,6 +92,44 @@ Transform raw NPI provider data into actionable sales leads. Get email addresses
     "maxResults": 10000
 }
 ```
+
+---
+
+### 📂 **Enrich Your Existing Provider List (Bulk Upload)**
+
+**Problem**: You already have a list of NPI numbers from your CRM, a vendor, or a prior export — you just need emails, LinkedIn profiles, and contact info added.
+
+**Solution**: Upload your CSV or paste a JSON array → Actor looks up and enriches every NPI in one run.
+
+**ROI**: Turn a dead spreadsheet into a fully enriched outreach list in minutes. No manual lookups, no per-seat SaaS fees.
+
+**How to upload a CSV (step-by-step):**
+
+1. Prepare your CSV with a column named `npi`, `npi_number`, or `NPI` — or just one NPI per row
+2. Go to **Apify Console → Storage → Key-Value Stores → Create store**
+3. Click **Add record**, upload your CSV file, copy the public URL
+4. Paste that URL into the `npiFile` field below and set mode to `bulk_lookup`
+
+**Option A — CSV file upload:**
+```json
+{
+    "mode": "bulk_lookup",
+    "npiFile": "https://api.apify.com/v2/key-value-stores/YOUR_STORE_ID/records/npis.csv",
+    "enableEmailEnrichment": true,
+    "enableLinkedInEnrichment": true
+}
+```
+
+**Option B — paste a small list directly (no file needed):**
+```json
+{
+    "mode": "bulk_lookup",
+    "npiNumbers": ["1871538041", "1932102168", "1245319599"],
+    "enableEmailEnrichment": true
+}
+```
+
+> Your CSV can come from anywhere — Google Drive (shared public link), Dropbox, S3, or Apify Storage. One NPI per row, or use a named column.
 
 ---
 
