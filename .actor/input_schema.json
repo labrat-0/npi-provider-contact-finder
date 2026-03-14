@@ -11,12 +11,13 @@
             "type": "string",
             "description": "Select what to do: search providers, get by NPI number, search organizations, or search by specialty.",
             "editor": "select",
-            "enum": ["search_providers", "get_provider", "search_organizations", "search_by_specialty"],
+            "enum": ["search_providers", "get_provider", "search_organizations", "search_by_specialty", "bulk_lookup"],
             "enumTitles": [
                 "Search Providers (by name, location)",
                 "Get Provider (by NPI number)",
                 "Search Organizations (hospitals, clinics, groups)",
-                "Search by Specialty (cardiology, oncology, etc.)"
+                "Search by Specialty (cardiology, oncology, etc.)",
+                "Bulk Lookup (CSV or JSON list of NPI numbers)"
             ],
             "default": "search_providers"
         },
@@ -33,6 +34,19 @@
             "title": "NPI Number",
             "type": "string",
             "description": "10-digit NPI number for direct lookup (get_provider mode).",
+            "editor": "textfield"
+        },
+        "npiNumbers": {
+            "title": "NPI Numbers (bulk)",
+            "type": "array",
+            "description": "JSON array of 10-digit NPI numbers for bulk_lookup mode. Example: [\"1234567890\", \"0987654321\"]",
+            "editor": "json",
+            "items": { "type": "string" }
+        },
+        "npiFile": {
+            "title": "NPI CSV File URL (bulk)",
+            "type": "string",
+            "description": "URL to a CSV file containing NPI numbers for bulk_lookup mode. The file should have a column named 'npi', 'npi_number', or 'NPI', or list one NPI per row. Supports any publicly accessible URL or Apify Key-Value Store URL.",
             "editor": "textfield"
         },
         "firstName": {

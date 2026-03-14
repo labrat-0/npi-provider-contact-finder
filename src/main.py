@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import csv
+import io
 import logging
 import os
 
 import httpx
 from apify import Actor
 
-from .models import ScraperInput
+from .models import ScraperInput, ScrapingMode
 from .scraper import NPIProviderScraper
 from .utils import RateLimiter
 
@@ -19,6 +21,36 @@ async def main() -> None:
     async with Actor:
         raw_input = await Actor.get_input() or {}
         config = ScraperInput.from_actor_input(raw_input)
+
+        # Handle CSV/JSON file upload for bulk_lookup mode
+        if config.mode == ScrapingMode.BULK_LOOKUP and not config.npi_numbers:
+            npi_file_url = raw_input.get("npiFile")
+            if npi_file_url:
+                try:
+                    async with httpx.AsyncClient() as dl_client:
+                        resp = await dl_client.get(npi_file_url, timeout=30)
+                        resp.raise_for_status()
+                        content = resp.text
+                    # Try CSV first, then plain newline-delimited
+                    parsed: list[str] = []
+                    reader = csv.DictReader(io.StringIO(content))
+                    npi_col = next(
+                        (f for f in (reader.fieldnames or []) if f.strip().lower() in ("npi", "npi_number", "npi number")),
+                        None,
+                    )
+                    if npi_col:
+                        parsed = [row[npi_col].strip() for row in reader if row[npi_col].strip()]
+                    else:
+                        # Fallback: first column or plain list
+                        for line in content.splitlines():
+                            val = line.split(",")[0].strip().strip('"')
+                            if val and val.lower() not in ("npi", "npi_number"):
+                                parsed.append(val)
+                    config.npi_numbers = [n for n in parsed if n]
+                    Actor.log.info(f"Loaded {len(config.npi_numbers)} NPI numbers from uploaded file.")
+                except Exception as e:
+                    await Actor.fail(status_message=f"Failed to read npiFile: {e}")
+                    return
 
         validation_error = config.validate_for_mode()
         if validation_error:
@@ -58,8 +90,14 @@ async def main() -> None:
             batch: list[dict] = []
             batch_size = 25
 
+            scrape_iter = (
+                scraper.scrape_bulk()
+                if config.mode == ScrapingMode.BULK_LOOKUP
+                else scraper.scrape()
+            )
+
             try:
-                async for item in scraper.scrape():
+                async for item in scrape_iter:
                     if count >= max_results:
                         break
 

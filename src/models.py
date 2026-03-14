@@ -13,6 +13,7 @@ class ScrapingMode(str, Enum):
     GET_PROVIDER = "get_provider"
     SEARCH_ORGANIZATIONS = "search_organizations"
     SEARCH_BY_SPECIALTY = "search_by_specialty"
+    BULK_LOOKUP = "bulk_lookup"
 
 
 class ScraperInput(BaseModel):
@@ -33,6 +34,9 @@ class ScraperInput(BaseModel):
     timeout_secs: int = 30
     max_retries: int = 5
     
+    # Bulk lookup
+    npi_numbers: list[str] = Field(default_factory=list)  # for bulk_lookup mode
+
     # Contact enrichment options
     enable_email_enrichment: bool = False
     enable_linkedin_enrichment: bool = False
@@ -58,6 +62,9 @@ class ScraperInput(BaseModel):
             request_interval_secs=raw.get("requestIntervalSecs", 0.5),
             timeout_secs=raw.get("timeoutSecs", 30),
             max_retries=raw.get("maxRetries", 5),
+            npi_numbers=[
+                str(n).strip() for n in raw.get("npiNumbers", []) if str(n).strip()
+            ],
             enable_email_enrichment=raw.get("enableEmailEnrichment", False),
             enable_linkedin_enrichment=raw.get("enableLinkedInEnrichment", False),
             enable_social_media_enrichment=raw.get("enableSocialMediaEnrichment", False),
@@ -65,6 +72,13 @@ class ScraperInput(BaseModel):
         )
 
     def validate_for_mode(self) -> str | None:
+        if self.mode == ScrapingMode.BULK_LOOKUP:
+            if not self.npi_numbers:
+                return "Provide npiNumbers (JSON array) or upload a CSV via npiFile for bulk_lookup mode."
+            invalid = [n for n in self.npi_numbers if not n.isdigit() or len(n) != 10]
+            if invalid:
+                return f"Invalid NPI numbers (must be 10 digits): {', '.join(invalid[:5])}"
+            return None
         if self.mode == ScrapingMode.GET_PROVIDER:
             if not self.npi_number:
                 return "Provide an NPI number for get_provider mode."

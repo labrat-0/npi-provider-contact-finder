@@ -301,3 +301,52 @@ class NPIProviderScraper:
             skip += len(results)
 
         logger.info(f"Scraped {count} providers total")
+
+    async def scrape_bulk(self) -> AsyncGenerator[dict[str, Any], None]:
+        """Bulk lookup: fetch one provider per NPI number in npi_numbers list."""
+        count = 0
+        for npi in self.config.npi_numbers:
+            if count >= self.config.max_results:
+                break
+
+            await self.rate_limiter.wait()
+            params = {
+                "version": NPPES_API_VERSION,
+                "number": npi,
+                "limit": 1,
+            }
+            data = await fetch_json(
+                self.client,
+                NPPES_API_URL,
+                params,
+                self.rate_limiter,
+                self.headers,
+                max_retries=self.retries,
+                timeout=self.timeout,
+            )
+
+            results = (data or {}).get("results", [])
+            if not results:
+                logger.warning(f"No result for NPI {npi}")
+                continue
+
+            record = _normalize_provider(results[0])
+
+            if self.config.enable_email_enrichment:
+                try:
+                    enrichment = await enrich_provider_contacts(
+                        provider_data=results[0],
+                        client=self.client,
+                        rate_limiter=self.rate_limiter,
+                        timeout=self.config.email_enrichment_timeout,
+                        enable_linkedin=self.config.enable_linkedin_enrichment,
+                        enable_social=self.config.enable_social_media_enrichment,
+                    )
+                    record.contact_enrichment = enrichment
+                except Exception as e:
+                    logger.error(f"Enrichment failed for NPI {npi}: {e}")
+
+            yield record.model_dump()
+            count += 1
+
+        logger.info(f"Bulk lookup: {count} providers fetched")

@@ -176,6 +176,31 @@ Find hospitals, clinics, group practices with decision-maker contacts.
 }
 ```
 
+### Mode 5: Bulk Lookup (CSV or JSON list)
+
+Look up a list of NPI numbers in bulk — perfect for enriching an existing CRM export or processing a vendor-supplied provider list.
+
+**Option A — JSON array:**
+```json
+{
+    "mode": "bulk_lookup",
+    "npiNumbers": ["1871538041", "1932102168", "1245319599"],
+    "enableEmailEnrichment": true,
+    "enableLinkedInEnrichment": true
+}
+```
+
+**Option B — CSV file upload:**
+```json
+{
+    "mode": "bulk_lookup",
+    "npiFile": "https://your-storage/npis.csv",
+    "enableEmailEnrichment": true
+}
+```
+
+The CSV file should have a column named `npi`, `npi_number`, or `NPI` — or just one NPI number per row. All enrichment flags work the same as single-provider modes.
+
 ---
 
 ## Contact Enrichment Options
