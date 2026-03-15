@@ -76,3 +76,6 @@ Thumbs.db
 
 # GSD planning artifacts
 .planning/
+
+# Development documentation
+.arc/
