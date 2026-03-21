@@ -127,6 +127,21 @@ if self.mode == ScrapingMode.SEARCH_BY_SPECIALTY:
 
 **`searchQueriesList` applies only to search modes** (`search_providers`, `search_organizations`, `search_by_specialty`). For `bulk_lookup` and `get_provider` modes, `queries_list` is ignored and the existing single-run logic is unchanged.
 
+**Integration with existing code structure:** The current `main.py` lines 93–97 select between `scraper.scrape_bulk()` and `scraper.scrape()` via a ternary. The new multi-query loop **replaces only the `scraper.scrape()` branch** — i.e., the `else scraper.scrape()` path. The `scrape_bulk()` branch for `BULK_LOOKUP` is preserved as a separate `if` block before the multi-query loop. Concrete structure:
+
+```python
+if config.mode == ScrapingMode.BULK_LOOKUP:
+    # unchanged — existing scrape_bulk() path
+    async for item in scraper.scrape_bulk():
+        ...  # existing batch push logic, no dedup needed (NPI numbers are explicit)
+else:
+    # new multi-query loop for all search modes
+    search_queries = config.queries_list if (config.mode in SEARCH_MODES and config.queries_list) else ([config.query] if config.query else [""])
+    seen_npis: set[str] = set()
+    for query in search_queries:
+        ...  # loop body as below
+```
+
 Replace the single-query scrape block with a multi-query loop for search modes. `ScraperInput` has no `frozen=True` so `config.query` is mutable. The scraper reads `self.config.query` lazily on each call (confirmed at `scraper.py:204,211,219`), so mutating it between iterations is safe.
 
 ```python
