@@ -216,13 +216,17 @@ if batch:
 
 1. One-line hook
 2. Value prop (3 bullets max)
-3. Quick start — specialty batch example (leads with new feature)
+3. Two featured workflows — give each equal prominence as a named section:
+   - **"Batch Search by Specialty or Name"** — `searchQueriesList` pattern, pharma rep use case example
+   - **"Bulk Enrich by NPI Number"** — for users who already have NPI lists. Cover both paths:
+     - JSON array (`npiNumbers`) for small lists pasted directly
+     - CSV upload via Apify Key-Value Store for large lists. Include the full step-by-step (create store → upload CSV → copy URL → paste into npiFile field). Make it concrete — users drop off when the KV store flow isn't explained.
 4. Input reference table — columns: `Field`, `Type`, `Default`, `Description`. Cover all fields in `input_schema.json`. Group by section (Search, Location, Output, Advanced, Enrichment).
-5. Batch Search section (new)
-6. Bulk Upload section (existing, moved lower)
-7. FAQ
+5. FAQ
 
 **Tone:** Direct, outcome-focused. "Build a territory list in one run" not "supports 5 scraping modes."
+
+**Note on bulk NPI marketing:** The Key-Value Store upload flow is the highest-friction part of the bulk NPI feature — users who don't understand the difference between the console URL and the API URL fail silently. The README must explain this clearly. The current README already has a step-by-step for this; preserve and improve it, don't collapse it.
 
 ---
 
