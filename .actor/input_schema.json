@@ -26,9 +26,17 @@
             "sectionDescription": "Provide search criteria based on your selected mode.",
             "title": "🔎 Search query",
             "type": "string",
-            "description": "General search term. Used as last name (search_providers), organization name (search_organizations), or specialty (search_by_specialty) depending on mode.",
+            "description": "General search term. Used as last name (search_providers), organization name (search_organizations), or specialty (search_by_specialty) depending on mode. For multiple searches in one run, use 'searchQueriesList' instead.",
             "editor": "textfield",
             "prefill": "Smith"
+        },
+        "searchQueriesList": {
+            "title": "🔎 Batch Search Queries",
+            "type": "array",
+            "description": "Run multiple searches in one go. Each item replaces the 'query' field for one search run. Results are automatically deduped by NPI number across all queries. Works with search_providers, search_organizations, and search_by_specialty modes. If provided, takes precedence over the single 'query' field.",
+            "editor": "stringList",
+            "items": { "type": "string" },
+            "prefill": ["Cardiology", "Oncology"]
         },
         "npiNumber": {
             "title": "🪪 NPI Number",
@@ -180,6 +188,5 @@
             "maximum": 30
         }
     },
-    "required": ["mode"],
-    "additionalProperties": false
+    "required": ["mode"]
 }
