@@ -1,59 +1,367 @@
 {
     "actorSpecification": 1,
     "fields": {
-        "schema_version": { "type": "string" },
-        "record_type": { "type": "string" },
-        "npi_number": { "type": "string" },
-        "enumeration_type": { "type": "string" },
-        "first_name": { "type": "string" },
-        "last_name": { "type": "string" },
-        "middle_name": { "type": "string" },
-        "name_prefix": { "type": "string" },
-        "name_suffix": { "type": "string" },
-        "credential": { "type": "string" },
-        "sex": { "type": "string" },
-        "sole_proprietor": { "type": "string" },
-        "organization_name": { "type": "string" },
-        "organizational_subpart": { "type": "string" },
-        "authorized_official_first_name": { "type": "string" },
-        "authorized_official_last_name": { "type": "string" },
-        "authorized_official_title": { "type": "string" },
-        "authorized_official_telephone": { "type": "string" },
-        "enumeration_date": { "type": "string" },
-        "last_updated": { "type": "string" },
-        "certification_date": { "type": "string" },
-        "status": { "type": "string" },
-        "addresses": { "type": "array" },
-        "taxonomies": { "type": "array" },
-        "identifiers": { "type": "array" },
-        "other_names": { "type": "array" },
-        "endpoints": { "type": "array" },
-        "primary_specialty": { "type": "string" },
-        "practice_address_city": { "type": "string" },
-        "practice_address_state": { "type": "string" },
-        "npi_registry_url": { "type": "string" },
-        "contact_enrichment": {
-            "type": "object",
-            "properties": {
-                "emails": { "type": "array" },
-                "primary_email": { "type": "string" },
-                "office_email": { "type": "string" },
-                "billing_email": { "type": "string" },
-                "practice_website": { "type": "string" },
-                "website_scraped": { "type": "boolean" },
-                "website_scrape_error": { "type": "string" },
-                "linkedin_profile_url": { "type": "string" },
-                "facebook_url": { "type": "string" },
-                "twitter_url": { "type": "string" },
-                "instagram_url": { "type": "string" },
-                "healthgrades_url": { "type": "string" },
-                "vitals_url": { "type": "string" },
-                "zocdoc_url": { "type": "string" },
-                "office_manager_name": { "type": "string" },
-                "office_manager_email": { "type": "string" },
-                "billing_contact_email": { "type": "string" },
-                "enrichment_timestamp": { "type": "string" },
-                "enrichment_sources": { "type": "array" }
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+            "schema_version": {
+                "type": "string",
+                "description": "Schema version of the output record",
+                "nullable": true,
+                "example": "2.0"
+            },
+            "record_type": {
+                "type": "string",
+                "description": "Record type identifier",
+                "nullable": true,
+                "example": "provider_with_contacts"
+            },
+            "npi_number": {
+                "type": "string",
+                "description": "10-digit National Provider Identifier",
+                "nullable": true,
+                "example": "1234567890"
+            },
+            "enumeration_type": {
+                "type": "string",
+                "description": "NPI type — NPI-1 for individual providers, NPI-2 for organizations",
+                "nullable": true,
+                "example": "NPI-1"
+            },
+            "first_name": {
+                "type": "string",
+                "description": "Provider's first name (individual providers only)",
+                "nullable": true,
+                "example": "Jane"
+            },
+            "last_name": {
+                "type": "string",
+                "description": "Provider's last name (individual providers only)",
+                "nullable": true,
+                "example": "Smith"
+            },
+            "middle_name": {
+                "type": "string",
+                "description": "Provider's middle name (individual providers only)",
+                "nullable": true,
+                "example": "A"
+            },
+            "name_prefix": {
+                "type": "string",
+                "description": "Name prefix (e.g. Dr., Mr., Ms.)",
+                "nullable": true,
+                "example": "Dr."
+            },
+            "name_suffix": {
+                "type": "string",
+                "description": "Name suffix (e.g. Jr., III)",
+                "nullable": true,
+                "example": "Jr."
+            },
+            "credential": {
+                "type": "string",
+                "description": "Professional credential (e.g. MD, DO, RN, NP)",
+                "nullable": true,
+                "example": "MD"
+            },
+            "sex": {
+                "type": "string",
+                "description": "Provider's sex as recorded in NPPES",
+                "nullable": true,
+                "example": "F"
+            },
+            "sole_proprietor": {
+                "type": "string",
+                "description": "Whether the provider is a sole proprietor (Y or N)",
+                "nullable": true,
+                "example": "N"
+            },
+            "organization_name": {
+                "type": "string",
+                "description": "Organization or practice name (NPI-2 organizations only)",
+                "nullable": true,
+                "example": "Example Medical Group"
+            },
+            "organizational_subpart": {
+                "type": "string",
+                "description": "Whether the organization is a subpart of another (Y or N)",
+                "nullable": true,
+                "example": "N"
+            },
+            "authorized_official_first_name": {
+                "type": "string",
+                "description": "First name of the authorized official for an organization",
+                "nullable": true,
+                "example": "John"
+            },
+            "authorized_official_last_name": {
+                "type": "string",
+                "description": "Last name of the authorized official for an organization",
+                "nullable": true,
+                "example": "Doe"
+            },
+            "authorized_official_title": {
+                "type": "string",
+                "description": "Job title of the authorized official",
+                "nullable": true,
+                "example": "Chief Medical Officer"
+            },
+            "authorized_official_telephone": {
+                "type": "string",
+                "description": "Phone number of the authorized official",
+                "nullable": true,
+                "example": "555-555-0100"
+            },
+            "enumeration_date": {
+                "type": "string",
+                "description": "Date the NPI was assigned",
+                "nullable": true,
+                "example": "2010-04-15"
+            },
+            "last_updated": {
+                "type": "string",
+                "description": "Date the NPI record was last updated in NPPES",
+                "nullable": true,
+                "example": "2024-01-20"
+            },
+            "certification_date": {
+                "type": "string",
+                "description": "Date the NPI record was certified",
+                "nullable": true,
+                "example": "2024-01-20"
+            },
+            "status": {
+                "type": "string",
+                "description": "NPI status — A (Active) or D (Deactivated)",
+                "nullable": true,
+                "example": "A"
+            },
+            "addresses": {
+                "type": "array",
+                "description": "List of mailing and practice location addresses",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "address_purpose": { "type": "string", "nullable": true },
+                        "address_1": { "type": "string", "nullable": true },
+                        "address_2": { "type": "string", "nullable": true },
+                        "city": { "type": "string", "nullable": true },
+                        "state": { "type": "string", "nullable": true },
+                        "postal_code": { "type": "string", "nullable": true },
+                        "country_code": { "type": "string", "nullable": true },
+                        "country_name": { "type": "string", "nullable": true },
+                        "telephone_number": { "type": "string", "nullable": true },
+                        "fax_number": { "type": "string", "nullable": true }
+                    },
+                    "required": [],
+                    "additionalProperties": true
+                },
+                "nullable": true,
+                "example": [
+                    {
+                        "address_purpose": "LOCATION",
+                        "address_1": "123 Main St",
+                        "city": "Springfield",
+                        "state": "IL",
+                        "postal_code": "62701",
+                        "country_code": "US",
+                        "telephone_number": "555-555-0100"
+                    }
+                ]
+            },
+            "taxonomies": {
+                "type": "array",
+                "description": "List of provider specialty taxonomy codes and descriptions",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "code": { "type": "string", "nullable": true },
+                        "description": { "type": "string", "nullable": true },
+                        "license": { "type": "string", "nullable": true },
+                        "state": { "type": "string", "nullable": true },
+                        "primary": { "type": "boolean", "nullable": true },
+                        "taxonomy_group": { "type": "string", "nullable": true }
+                    },
+                    "required": [],
+                    "additionalProperties": true
+                },
+                "nullable": true,
+                "example": [
+                    {
+                        "code": "207Q00000X",
+                        "description": "Family Medicine",
+                        "primary": true
+                    }
+                ]
+            },
+            "identifiers": {
+                "type": "array",
+                "description": "Other provider identifiers (e.g. DEA, state license numbers)",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "code": { "type": "string", "nullable": true },
+                        "description": { "type": "string", "nullable": true },
+                        "identifier": { "type": "string", "nullable": true },
+                        "state": { "type": "string", "nullable": true },
+                        "issuer": { "type": "string", "nullable": true }
+                    },
+                    "required": [],
+                    "additionalProperties": true
+                },
+                "nullable": true,
+                "example": []
+            },
+            "other_names": {
+                "type": "array",
+                "description": "Other names the provider has used",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name_type": { "type": "string", "nullable": true },
+                        "code": { "type": "string", "nullable": true },
+                        "first_name": { "type": "string", "nullable": true },
+                        "last_name": { "type": "string", "nullable": true },
+                        "middle_name": { "type": "string", "nullable": true },
+                        "prefix": { "type": "string", "nullable": true },
+                        "suffix": { "type": "string", "nullable": true },
+                        "credential": { "type": "string", "nullable": true },
+                        "organization_name": { "type": "string", "nullable": true }
+                    },
+                    "required": [],
+                    "additionalProperties": true
+                },
+                "nullable": true,
+                "example": []
+            },
+            "endpoints": {
+                "type": "array",
+                "description": "Provider electronic endpoints (Direct messaging, FHIR, etc.)",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "endpoint_type": { "type": "string", "nullable": true },
+                        "endpoint_type_description": { "type": "string", "nullable": true },
+                        "endpoint": { "type": "string", "nullable": true },
+                        "endpoint_description": { "type": "string", "nullable": true },
+                        "affiliation": { "type": "string", "nullable": true },
+                        "affiliation_name": { "type": "string", "nullable": true },
+                        "use": { "type": "string", "nullable": true },
+                        "use_description": { "type": "string", "nullable": true },
+                        "content_type": { "type": "string", "nullable": true },
+                        "content_type_description": { "type": "string", "nullable": true }
+                    },
+                    "required": [],
+                    "additionalProperties": true
+                },
+                "nullable": true,
+                "example": []
+            },
+            "primary_specialty": {
+                "type": "string",
+                "description": "Primary taxonomy specialty description (convenience field)",
+                "nullable": true,
+                "example": "Family Medicine"
+            },
+            "practice_address_city": {
+                "type": "string",
+                "description": "City of the primary practice location (convenience field)",
+                "nullable": true,
+                "example": "Springfield"
+            },
+            "practice_address_state": {
+                "type": "string",
+                "description": "State of the primary practice location (convenience field)",
+                "nullable": true,
+                "example": "IL"
+            },
+            "npi_registry_url": {
+                "type": "string",
+                "description": "URL to this provider's profile on the NPPES NPI Registry",
+                "nullable": true,
+                "example": "https://npiregistry.cms.hhs.gov/provider-view/1234567890"
+            },
+            "contact_enrichment": {
+                "type": "object",
+                "description": "Contact enrichment data gathered from practice websites and social media",
+                "properties": {
+                    "emails": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "nullable": true
+                    },
+                    "primary_email": { "type": "string", "nullable": true },
+                    "office_email": { "type": "string", "nullable": true },
+                    "billing_email": { "type": "string", "nullable": true },
+                    "practice_website": { "type": "string", "nullable": true },
+                    "website_scraped": { "type": "boolean", "nullable": true },
+                    "website_scrape_error": { "type": "string", "nullable": true },
+                    "linkedin_profile_url": { "type": "string", "nullable": true },
+                    "facebook_url": { "type": "string", "nullable": true },
+                    "twitter_url": { "type": "string", "nullable": true },
+                    "instagram_url": { "type": "string", "nullable": true },
+                    "healthgrades_url": { "type": "string", "nullable": true },
+                    "vitals_url": { "type": "string", "nullable": true },
+                    "zocdoc_url": { "type": "string", "nullable": true },
+                    "office_manager_name": { "type": "string", "nullable": true },
+                    "office_manager_email": { "type": "string", "nullable": true },
+                    "billing_contact_email": { "type": "string", "nullable": true },
+                    "enrichment_timestamp": { "type": "string", "nullable": true },
+                    "enrichment_sources": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "nullable": true
+                    }
+                },
+                "required": [],
+                "additionalProperties": true,
+                "nullable": true,
+                "example": {
+                    "primary_email": "contact@examplepractice.com",
+                    "practice_website": "https://examplepractice.com",
+                    "website_scraped": true,
+                    "linkedin_profile_url": "https://linkedin.com/in/exampledoctor"
+                }
+            }
+        },
+        "required": [],
+        "additionalProperties": true
+    },
+    "views": {
+        "overview": {
+            "title": "Overview",
+            "transformation": {
+                "fields": [
+                    "npi_number",
+                    "enumeration_type",
+                    "last_name",
+                    "first_name",
+                    "organization_name",
+                    "credential",
+                    "primary_specialty",
+                    "practice_address_city",
+                    "practice_address_state",
+                    "status",
+                    "npi_registry_url",
+                    "contact_enrichment"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "npi_number": { "label": "NPI", "format": "text" },
+                    "enumeration_type": { "label": "Type", "format": "text" },
+                    "last_name": { "label": "Last Name", "format": "text" },
+                    "first_name": { "label": "First Name", "format": "text" },
+                    "organization_name": { "label": "Organization", "format": "text" },
+                    "credential": { "label": "Credential", "format": "text" },
+                    "primary_specialty": { "label": "Specialty", "format": "text" },
+                    "practice_address_city": { "label": "City", "format": "text" },
+                    "practice_address_state": { "label": "State", "format": "text" },
+                    "status": { "label": "Status", "format": "text" },
+                    "npi_registry_url": { "label": "Registry URL", "format": "link" },
+                    "contact_enrichment": { "label": "Contacts", "format": "object" }
+                }
             }
         }
     }

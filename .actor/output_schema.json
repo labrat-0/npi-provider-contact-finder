@@ -1,11 +1,12 @@
 {
     "actorOutputSchemaVersion": 1,
     "title": "NPI Provider Contact Finder Results",
-    "description": "Healthcare provider contacts with email enrichment from NPPES NPI Registry.",
+    "description": "Dataset containing healthcare provider records with contact enrichment from the NPPES NPI Registry.",
     "properties": {
         "results": {
             "type": "string",
             "title": "Dataset Results",
+            "description": "Dataset containing all scraped provider records with contact data",
             "template": "{{links.apiDefaultDatasetUrl}}/items"
         }
     }
