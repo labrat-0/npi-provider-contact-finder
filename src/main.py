@@ -12,6 +12,8 @@ from .models import ScraperInput, ScrapingMode
 from .scraper import NPIProviderScraper
 from .utils import RateLimiter
 
+SEARCH_MODES = {ScrapingMode.SEARCH_PROVIDERS, ScrapingMode.SEARCH_ORGANIZATIONS, ScrapingMode.SEARCH_BY_SPECIALTY}
+
 logger = logging.getLogger(__name__)
 
 FREE_TIER_LIMIT = 25
@@ -90,34 +92,71 @@ async def main() -> None:
             batch: list[dict] = []
             batch_size = 25
 
-            scrape_iter = (
-                scraper.scrape_bulk()
-                if config.mode == ScrapingMode.BULK_LOOKUP
-                else scraper.scrape()
-            )
-
-            try:
-                async for item in scrape_iter:
-                    if count >= max_results:
-                        break
-
-                    batch.append(item)
-                    count += 1
-                    state["scraped"] = count
-
-                    if len(batch) >= batch_size:
+            if config.mode == ScrapingMode.BULK_LOOKUP:
+                # Existing bulk path — unchanged, no dedup needed (NPIs are explicit)
+                try:
+                    async for item in scraper.scrape_bulk():
+                        if count >= max_results:
+                            break
+                        batch.append(item)
+                        count += 1
+                        state["scraped"] = count
+                        if len(batch) >= batch_size:
+                            await Actor.push_data(batch)
+                            batch = []
+                            await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
+                    if batch:
                         await Actor.push_data(batch)
-                        batch = []
-                        await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
+                except Exception as e:
+                    state["failed"] += 1
+                    Actor.log.error(f"Scraping error: {e}")
+                    if batch:
+                        await Actor.push_data(batch)
+            else:
+                # Multi-query loop for search and get_provider modes
+                search_queries = (
+                    config.queries_list
+                    if (config.mode in SEARCH_MODES and config.queries_list)
+                    else ([config.query] if config.query else [""])
+                )
+                seen_npis: set[str] = set()
 
-                if batch:
-                    await Actor.push_data(batch)
+                try:
+                    for query in search_queries:
+                        if count >= max_results:
+                            break
 
-            except Exception as e:  # pragma: no cover - defensive
-                state["failed"] += 1
-                Actor.log.error(f"Scraping error: {e}")
-                if batch:
-                    await Actor.push_data(batch)
+                        config.query = query
+                        if len(search_queries) > 1:
+                            Actor.log.info(f"Searching for query: {query!r}")
+
+                        async for item in scraper.scrape():
+                            if count >= max_results:
+                                break
+
+                            npi = item.get("npi_number", "")
+                            if npi and npi in seen_npis:
+                                continue
+                            if npi:
+                                seen_npis.add(npi)
+
+                            batch.append(item)
+                            count += 1
+                            state["scraped"] = count
+
+                            if len(batch) >= batch_size:
+                                await Actor.push_data(batch)
+                                batch = []
+                                await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
+
+                    if batch:
+                        await Actor.push_data(batch)
+
+                except Exception as e:
+                    state["failed"] += 1
+                    Actor.log.error(f"Scraping error: {e}")
+                    if batch:
+                        await Actor.push_data(batch)
 
         msg = f"Done. Scraped {count} providers."
         if state["failed"] > 0:
