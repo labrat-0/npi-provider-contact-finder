@@ -67,20 +67,24 @@ Add emoji prefixes to all `title` and `sectionCaption` fields:
 
 ### 1b. New `searchQueriesList` field
 
-Insert after the `query` field, inside the `Search Filters` section:
+Insert after the `query` field, inside the `Search Filters` section. Do NOT add a `sectionCaption` to this field — it inherits the section from `query`.
 
 ```json
 "searchQueriesList": {
     "title": "🔎 Batch Search Queries",
     "type": "array",
-    "description": "Run multiple searches in one go. Each item replaces the 'query' field for one search run. Results are automatically deduped by NPI number across all queries. Works with all search modes. If provided, takes precedence over the single 'query' field.",
+    "description": "Run multiple searches in one go. Each item replaces the 'query' field for one search run. Results are automatically deduped by NPI number across all queries. Works with search_providers, search_organizations, and search_by_specialty modes. If provided, takes precedence over the single 'query' field.",
     "editor": "stringList",
     "items": { "type": "string" },
     "prefill": ["Cardiology", "Oncology"]
 }
 ```
 
-### 1c. Update `query` description
+### 1c. Remove `additionalProperties: false`
+
+The `input_schema.json` currently ends with `"additionalProperties": false`. **Remove this line** (or the entire property). Without removing it, Apify's schema validator will reject any run that includes `searchQueriesList` in the input, before the actor code even executes.
+
+### 1d. Update `query` description
 
 Append to the existing description: `"For multiple searches in one run, use 'searchQueriesList' instead."`
 
@@ -100,10 +104,24 @@ queries_list: list[str] = Field(default_factory=list)
 queries_list=[q.strip() for q in raw.get("searchQueriesList", []) if str(q).strip()],
 ```
 
-**Update `validate_for_mode`** — for search modes, accept either `query` OR `queries_list`:
-- `SEARCH_PROVIDERS`: valid if `query`, `queries_list`, `first_name`, `last_name`, or `npi_number` is provided
-- `SEARCH_ORGANIZATIONS`: valid if `organization_name`, `query`, or `queries_list`
-- `SEARCH_BY_SPECIALTY`: valid if `taxonomy_description`, `query`, or `queries_list`
+**Update `validate_for_mode`** — replace the guard conditions for search modes with the following complete replacement snippets:
+
+```python
+# SEARCH_PROVIDERS (replaces line 87-89)
+if self.mode == ScrapingMode.SEARCH_PROVIDERS:
+    if not (self.query or self.queries_list or self.first_name or self.last_name or self.npi_number):
+        return "Provide at least one of: query (last name), searchQueriesList, first name, or last name for search_providers."
+
+# SEARCH_ORGANIZATIONS (replaces line 90-92)
+if self.mode == ScrapingMode.SEARCH_ORGANIZATIONS:
+    if not (self.organization_name or self.query or self.queries_list):
+        return "Provide an organization name, query, or searchQueriesList for search_organizations."
+
+# SEARCH_BY_SPECIALTY (replaces line 93-95)
+if self.mode == ScrapingMode.SEARCH_BY_SPECIALTY:
+    if not (self.taxonomy_description or self.query or self.queries_list):
+        return "Provide a taxonomy/specialty description, query, or searchQueriesList for search_by_specialty."
+```
 
 ### 2b. `src/main.py`
 
@@ -130,11 +148,7 @@ for query in search_queries:
     if len(search_queries) > 1:
         Actor.log.info(f"Searching for query: {query!r}")
 
-    scrape_iter = (
-        scraper.scrape_bulk()
-        if config.mode == ScrapingMode.BULK_LOOKUP
-        else scraper.scrape()
-    )
+    scrape_iter = scraper.scrape()  # always scrape() — bulk_lookup never enters this loop
 
     async for item in scrape_iter:
         if count >= max_results:
@@ -188,7 +202,7 @@ if batch:
 1. One-line hook
 2. Value prop (3 bullets max)
 3. Quick start — specialty batch example (leads with new feature)
-4. Input reference table
+4. Input reference table — columns: `Field`, `Type`, `Default`, `Description`. Cover all fields in `input_schema.json`. Group by section (Search, Location, Output, Advanced, Enrichment).
 5. Batch Search section (new)
 6. Bulk Upload section (existing, moved lower)
 7. FAQ
