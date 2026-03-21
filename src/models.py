@@ -37,6 +37,9 @@ class ScraperInput(BaseModel):
     # Bulk lookup
     npi_numbers: list[str] = Field(default_factory=list)  # for bulk_lookup mode
 
+    # Batch search (searchQueriesList)
+    queries_list: list[str] = Field(default_factory=list)
+
     # Contact enrichment options
     enable_email_enrichment: bool = False
     enable_linkedin_enrichment: bool = False
@@ -65,6 +68,7 @@ class ScraperInput(BaseModel):
             npi_numbers=[
                 str(n).strip() for n in raw.get("npiNumbers", []) if str(n).strip()
             ],
+            queries_list=[q.strip() for q in raw.get("searchQueriesList", []) if str(q).strip()],
             enable_email_enrichment=raw.get("enableEmailEnrichment", False),
             enable_linkedin_enrichment=raw.get("enableLinkedInEnrichment", False),
             enable_social_media_enrichment=raw.get("enableSocialMediaEnrichment", False),
@@ -85,14 +89,14 @@ class ScraperInput(BaseModel):
             if not self.npi_number.isdigit() or len(self.npi_number) != 10:
                 return "NPI number must be exactly 10 digits."
         if self.mode == ScrapingMode.SEARCH_PROVIDERS:
-            if not (self.query or self.first_name or self.last_name or self.npi_number):
-                return "Provide at least one of: query (last name), first name, or last name for search_providers."
+            if not (self.query or self.queries_list or self.first_name or self.last_name or self.npi_number):
+                return "Provide at least one of: query (last name), searchQueriesList, first name, or last name for search_providers."
         if self.mode == ScrapingMode.SEARCH_ORGANIZATIONS:
-            if not (self.organization_name or self.query):
-                return "Provide an organization name or query for search_organizations."
+            if not (self.organization_name or self.query or self.queries_list):
+                return "Provide an organization name, query, or searchQueriesList for search_organizations."
         if self.mode == ScrapingMode.SEARCH_BY_SPECIALTY:
-            if not (self.taxonomy_description or self.query):
-                return "Provide a taxonomy/specialty description for search_by_specialty."
+            if not (self.taxonomy_description or self.query or self.queries_list):
+                return "Provide a taxonomy/specialty description, query, or searchQueriesList for search_by_specialty."
         return None
 
 
