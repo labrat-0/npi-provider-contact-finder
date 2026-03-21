@@ -107,15 +107,25 @@ queries_list=[q.strip() for q in raw.get("searchQueriesList", []) if str(q).stri
 
 ### 2b. `src/main.py`
 
-Replace the single-query scrape block with a multi-query loop:
+**`searchQueriesList` applies only to search modes** (`search_providers`, `search_organizations`, `search_by_specialty`). For `bulk_lookup` and `get_provider` modes, `queries_list` is ignored and the existing single-run logic is unchanged.
+
+Replace the single-query scrape block with a multi-query loop for search modes. `ScraperInput` has no `frozen=True` so `config.query` is mutable. The scraper reads `self.config.query` lazily on each call (confirmed at `scraper.py:204,211,219`), so mutating it between iterations is safe.
 
 ```python
-# Build effective query list
-search_queries = config.queries_list if config.queries_list else ([config.query] if config.query else [""])
+SEARCH_MODES = {ScrapingMode.SEARCH_PROVIDERS, ScrapingMode.SEARCH_ORGANIZATIONS, ScrapingMode.SEARCH_BY_SPECIALTY}
+
+# Build effective query list (search modes only)
+if config.mode in SEARCH_MODES and config.queries_list:
+    search_queries = config.queries_list
+else:
+    search_queries = [config.query] if config.query else [""]
 
 seen_npis: set[str] = set()
 
 for query in search_queries:
+    if count >= max_results:
+        break  # max_results applies across all queries combined
+
     config.query = query
     if len(search_queries) > 1:
         Actor.log.info(f"Searching for query: {query!r}")
@@ -138,10 +148,25 @@ for query in search_queries:
 
         batch.append(item)
         count += 1
-        # ... rest of batch push logic unchanged
+        state["scraped"] = count
+
+        if len(batch) >= batch_size:
+            await Actor.push_data(batch)
+            batch = []
+            await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
+
+if batch:
+    await Actor.push_data(batch)
 ```
 
-`max_results` applies across all queries combined.
+`max_results` is enforced both at the top of the outer loop and inside the inner loop to prevent over-fetching.
+
+**Validation message update** — update the `validate_for_mode` error messages for search modes to mention `searchQueriesList`:
+- `SEARCH_PROVIDERS`: `"Provide at least one of: query (last name), searchQueriesList, first name, or last name for search_providers."`
+- `SEARCH_ORGANIZATIONS`: `"Provide an organization name, query, or searchQueriesList for search_organizations."`
+- `SEARCH_BY_SPECIALTY`: `"Provide a taxonomy/specialty description, query, or searchQueriesList for search_by_specialty."`
+
+**`ProviderRecord.schema_version`** — leave at `"2.0"`. This field represents the output schema version, which has not changed. Out of scope.
 
 ### 2c. No changes to
 
