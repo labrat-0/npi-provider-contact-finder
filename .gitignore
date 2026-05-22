@@ -74,7 +74,5 @@ apify_storage/
 .DS_Store
 Thumbs.db
 
-# GSD planning artifacts
-.planning/
 
 # Development documentation
