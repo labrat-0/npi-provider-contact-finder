@@ -120,7 +120,7 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 ```markdown
 ## Performance
 
-- ⚡️ **Speed**: 100 contacts in 2 mins, 1,000 in 15 mins, 10,000 in 2 hours (with email enrichment)
+- ⚡️ **Speed**: Base NPI lookups are fast (thousands per run). With email enrichment enabled, each provider triggers a live per-provider web search (via Apify Proxy) plus a website scrape, so throughput is bounded by the request interval — plan for roughly a few seconds per provider.
 - 💾 **Enrichment Rate**: 45-50% of providers will have email addresses found
 - 📊 **Data Quality**: Direct from CMS NPPES API (authoritative source, updated weekly)
 - 🌍 **Coverage**: 6+ million active US healthcare providers
