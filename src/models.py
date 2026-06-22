@@ -45,6 +45,10 @@ class ScraperInput(BaseModel):
     enable_linkedin_enrichment: bool = False
     enable_social_media_enrichment: bool = False
     email_enrichment_timeout: int = 10  # seconds per website scrape
+    # Cap on how many providers get paid contact enrichment per run. Each
+    # enriched provider triggers a paid Google SERP proxy search; this bounds
+    # the run's proxy cost. Providers past the cap still return base NPI data.
+    max_enrichment_results: int = 500
 
     @classmethod
     def from_actor_input(cls, raw: dict[str, Any]) -> ScraperInput:
@@ -73,6 +77,7 @@ class ScraperInput(BaseModel):
             enable_linkedin_enrichment=raw.get("enableLinkedInEnrichment", False),
             enable_social_media_enrichment=raw.get("enableSocialMediaEnrichment", False),
             email_enrichment_timeout=raw.get("emailEnrichmentTimeout", 10),
+            max_enrichment_results=raw.get("maxEnrichmentResults", 500),
         )
 
     def validate_for_mode(self) -> str | None:

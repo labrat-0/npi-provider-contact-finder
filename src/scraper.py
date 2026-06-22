@@ -247,6 +247,8 @@ class NPIProviderScraper:
     async def scrape(self) -> AsyncGenerator[dict[str, Any], None]:
         """Main scrape entry point -- yields normalized provider dicts."""
         count = 0
+        enriched_count = 0
+        cap_logged = False
         skip = 0
 
         while count < self.config.max_results:
@@ -278,7 +280,21 @@ class NPIProviderScraper:
                     break
                 record = _normalize_provider(raw_provider)
 
-                if self.config.enable_email_enrichment:
+                # Cap paid enrichment per run to bound proxy cost. Past the cap,
+                # still yield the base NPI record (no paid SERP search).
+                cap_reached = (
+                    self.config.enable_email_enrichment
+                    and enriched_count >= self.config.max_enrichment_results
+                )
+                if cap_reached and not cap_logged:
+                    logger.info(
+                        f"Enrichment cap reached "
+                        f"({self.config.max_enrichment_results}); remaining "
+                        f"providers return base NPI data only."
+                    )
+                    cap_logged = True
+
+                if self.config.enable_email_enrichment and not cap_reached:
                     try:
                         enrichment = await enrich_provider_contacts(
                             provider_data=raw_provider,
@@ -295,6 +311,8 @@ class NPIProviderScraper:
                             f"Enrichment failed for NPI {record.npi_number}: {e}"
                         )
                         # Leave contact_enrichment as None — don't crash the scraper
+                    finally:
+                        enriched_count += 1
 
                 yield record.model_dump()
                 count += 1
@@ -310,6 +328,8 @@ class NPIProviderScraper:
     async def scrape_bulk(self) -> AsyncGenerator[dict[str, Any], None]:
         """Bulk lookup: fetch one provider per NPI number in npi_numbers list."""
         count = 0
+        enriched_count = 0
+        cap_logged = False
         for npi in self.config.npi_numbers:
             if count >= self.config.max_results:
                 break
@@ -337,7 +357,20 @@ class NPIProviderScraper:
 
             record = _normalize_provider(results[0])
 
-            if self.config.enable_email_enrichment:
+            # Cap paid enrichment per run to bound proxy cost (see scrape()).
+            cap_reached = (
+                self.config.enable_email_enrichment
+                and enriched_count >= self.config.max_enrichment_results
+            )
+            if cap_reached and not cap_logged:
+                logger.info(
+                    f"Enrichment cap reached "
+                    f"({self.config.max_enrichment_results}); remaining "
+                    f"providers return base NPI data only."
+                )
+                cap_logged = True
+
+            if self.config.enable_email_enrichment and not cap_reached:
                 try:
                     enrichment = await enrich_provider_contacts(
                         provider_data=results[0],
@@ -351,6 +384,8 @@ class NPIProviderScraper:
                     record.contact_enrichment = enrichment
                 except Exception as e:
                     logger.error(f"Enrichment failed for NPI {npi}: {e}")
+                finally:
+                    enriched_count += 1
 
             yield record.model_dump()
             count += 1

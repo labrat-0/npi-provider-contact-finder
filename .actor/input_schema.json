@@ -187,6 +187,14 @@
             "minimum": 5,
             "maximum": 30
         },
+        "maxEnrichmentResults": {
+            "title": "🧮 Max Enrichment Results (per run)",
+            "type": "integer",
+            "description": "Maximum number of providers to run paid contact enrichment on per run. Each enriched provider triggers a web search, so this caps the run's enrichment cost. Providers beyond this limit still return base NPI data (no enrichment).",
+            "default": 500,
+            "minimum": 1,
+            "maximum": 100000
+        },
         "proxyConfiguration": {
             "sectionCaption": "🌐 Proxy",
             "sectionDescription": "Web search for practice websites and LinkedIn profiles is routed through Apify Proxy. Public search engines block datacenter IPs, so a proxy is required for enrichment to return results. Defaults to the Google SERP group.",
