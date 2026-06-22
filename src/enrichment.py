@@ -208,6 +208,8 @@ _DIRECTORY_DOMAINS = frozenset([
     'npidb.org', 'mapquest.com', 'healthlynked.com', 'everydayhealth.care',
     'everydayhealth.com', 'sharecare.com', 'md.com', 'wellness.com',
     'caredash.com', 'findatopdoc.com', 'docinfo.org',
+    'medifind.com', 'getluna.com', 'doctor.com', 'healthcare4ppl.com',
+    'ratemymd.com', 'opencare.com', 'solvhealth.com',
 ])
 
 # URL path markers for health-system / hospital "find a doctor" directory
@@ -380,6 +382,11 @@ async def _discover_practice_website(
     for href in urls:
         # Skip directory/aggregator sites and provider-finder listing pages
         if _is_directory_url(href):
+            continue
+        # Skip non-HTML documents (PDFs etc.) — these are CVs/rosters/news with
+        # no scrapeable contact form and rarely a usable email.
+        path = urlparse(href).path.lower()
+        if path.endswith(('.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx')):
             continue
 
         logger.info(f"Website discovery found: {href} for provider {provider_name}")
@@ -573,9 +580,19 @@ async def enrich_provider_website(
         # Extract emails, then drop any that don't plausibly belong to this
         # provider (guards against shared/institutional pages leaking a
         # different person's address, e.g. zach.carlyle@iowa.gov for "Paula Cantu").
-        emails = _extract_emails_from_text(html)
-        emails = _filter_emails_by_provider(emails, first_name, last_name, website_url)
+        raw_emails = _extract_emails_from_text(html)
+        emails = _filter_emails_by_provider(raw_emails, first_name, last_name, website_url)
         enrichment.emails = emails
+        # Observability: distinguish "page had no emails" from "name filter
+        # dropped them all". If many are dropped, discovery may be landing on
+        # shared/roster pages (expected) — or the filter is too strict (bug).
+        if raw_emails:
+            logger.info(
+                f"Email extraction for {website_url}: "
+                f"{len(raw_emails)} found on page, {len(emails)} kept after "
+                f"provider name-match filter "
+                f"({len(raw_emails) - len(emails)} dropped as unrelated/placeholder)."
+            )
         
         # Classify emails
         classified = _classify_emails(emails)
