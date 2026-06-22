@@ -73,6 +73,78 @@ def _extract_emails_from_text(text: str) -> list[str]:
     return list(set(emails))
 
 
+# Generic role mailboxes legitimately belonging to a practice (not a specific
+# different person). These are kept even when they don't match the provider's
+# name, since they're the practice's own shared inbox.
+_GENERIC_EMAIL_LOCALPARTS = frozenset([
+    'info', 'contact', 'contactus', 'hello', 'office', 'admin',
+    'administrator', 'reception', 'frontdesk', 'frontoffice', 'appointments',
+    'appointment', 'scheduling', 'schedule', 'billing', 'accounts',
+    'accounting', 'support', 'help', 'care', 'patient', 'patients',
+    'newpatients', 'referral', 'referrals', 'records', 'medicalrecords',
+    'practice', 'clinic', 'mail', 'email', 'general', 'inquiries', 'inquiry',
+])
+
+
+def _alpha(s: str) -> str:
+    """Lowercase, strip to a-z only."""
+    return re.sub(r'[^a-z]', '', s.lower())
+
+
+def _email_belongs_to_provider(
+    email: str, first: str, last: str, website_url: str = ""
+) -> bool:
+    """
+    Strict check that an email plausibly belongs to the searched provider.
+
+    Prevents wrong-person leaks (e.g. ``zach.carlyle@iowa.gov`` returned for
+    provider "Paula Cantu"). Keeps an email only when at least one holds:
+      * the email's host (sans TLD) contains the provider's last name — i.e. a
+        practice-owned domain like ``cantufamilymedicine.com``;
+      * the localpart contains the provider's first or last name;
+      * the localpart is a generic practice role mailbox (info@, contact@, ...).
+    Org records (no first/last) keep everything — there is no name to match.
+    Precision over recall: a dropped legit email is better than a wrong person.
+    """
+    first_a = _alpha(first)
+    last_a = _alpha(last)
+    if not first_a and not last_a:
+        return True  # organization record — nothing to match against
+
+    localpart = email.lower().partition('@')[0]
+    local_a = _alpha(localpart)
+
+    # Generic role mailbox: keep (practice's own inbox).
+    bare = re.sub(r'[^a-z0-9]', '', localpart.lower())
+    bare_alpha = re.sub(r'[0-9]', '', bare)
+    if bare_alpha in _GENERIC_EMAIL_LOCALPARTS:
+        return True
+
+    # Name appears in localpart (require >=3 chars to avoid noise matches).
+    if len(last_a) >= 3 and last_a in local_a:
+        return True
+    if len(first_a) >= 3 and first_a in local_a:
+        return True
+
+    # Practice-owned domain carrying the provider's last name.
+    if last_a and len(last_a) >= 3 and website_url:
+        host = urlparse(
+            website_url if '://' in website_url else 'https://' + website_url
+        ).netloc.lower()
+        host_alpha = _alpha(host.rsplit('.', 1)[0])  # drop TLD
+        if last_a in host_alpha:
+            return True
+
+    return False
+
+
+def _filter_emails_by_provider(
+    emails: list[str], first: str, last: str, website_url: str = ""
+) -> list[str]:
+    """Drop emails that don't plausibly belong to the provider (see above)."""
+    return [e for e in emails if _email_belongs_to_provider(e, first, last, website_url)]
+
+
 def _extract_social_urls(html: str, base_url: str) -> dict[str, str]:
     """Extract social media URLs from HTML."""
     soup = BeautifulSoup(html, 'html.parser')
@@ -156,6 +228,12 @@ def _is_directory_url(href: str) -> bool:
     domain = parsed.netloc.lower()
     if domain.startswith('www.'):
         domain = domain[4:]
+    # Government / military hosts (e.g. state licensing boards, iowa.gov) are
+    # shared institutional directories listing many people — scraping them
+    # yields a different person's email than the searched provider. Skip them.
+    host = domain.split(':')[0]
+    if host.endswith('.gov') or host.endswith('.mil') or host == 'gov' or host == 'mil':
+        return True
     if any(domain == d or domain.endswith('.' + d) for d in _DIRECTORY_DOMAINS):
         return True
     path = parsed.path.lower()
@@ -407,6 +485,8 @@ async def enrich_provider_contacts(
             rate_limiter=rate_limiter,
             timeout=timeout,
             enable_social=enable_social,
+            first_name=first,
+            last_name=last,
         )
         # Ensure enrichment_sources includes the discovered URL
         if practice_website not in enrichment.enrichment_sources:
@@ -448,17 +528,21 @@ async def enrich_provider_website(
     rate_limiter: RateLimiter,
     timeout: int = 10,
     enable_social: bool = True,
+    first_name: str = "",
+    last_name: str = "",
 ) -> ContactEnrichment:
     """
     Scrape a practice website for contact information.
-    
+
     Args:
         website_url: Practice website URL
         client: HTTP client
         rate_limiter: Rate limiter
         timeout: Request timeout
         enable_social: Whether to extract social media links
-        
+        first_name: Provider first name, used to drop wrong-person emails
+        last_name: Provider last name, used to drop wrong-person emails
+
     Returns:
         ContactEnrichment with discovered contacts
     """
@@ -486,8 +570,11 @@ async def enrich_provider_website(
         
         html = response.text
         
-        # Extract emails
+        # Extract emails, then drop any that don't plausibly belong to this
+        # provider (guards against shared/institutional pages leaking a
+        # different person's address, e.g. zach.carlyle@iowa.gov for "Paula Cantu").
         emails = _extract_emails_from_text(html)
+        emails = _filter_emails_by_provider(emails, first_name, last_name, website_url)
         enrichment.emails = emails
         
         # Classify emails
