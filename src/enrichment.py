@@ -25,9 +25,12 @@ EMAIL_PATTERN = re.compile(
     r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 )
 
-# Social media URL patterns
+# Social media URL patterns. NOTE: linkedin_profile_url is meant to be the
+# provider's personal /in/ profile, so the linkedin pattern only matches /in/
+# — a hospital's /company/ page must not be stored as the person's profile
+# (it would also block the dedicated personal-profile search).
 SOCIAL_PATTERNS = {
-    'linkedin': re.compile(r'https?://(?:www\.)?linkedin\.com/(?:in|company)/[\w-]+/?'),
+    'linkedin': re.compile(r'https?://(?:[\w.]+\.)?linkedin\.com/in/[\w-]+/?'),
     'facebook': re.compile(r'https?://(?:www\.)?facebook\.com/[\w.-]+/?'),
     'twitter': re.compile(r'https?://(?:www\.)?(?:twitter|x)\.com/[\w]+/?'),
     'instagram': re.compile(r'https?://(?:www\.)?instagram\.com/[\w.]+/?'),
@@ -36,18 +39,37 @@ SOCIAL_PATTERNS = {
     'zocdoc': re.compile(r'https?://(?:www\.)?zocdoc\.com/doctor/[\w-]+'),
 }
 
+# Template/sample emails commonly embedded in site boilerplate. Scraping these
+# produces junk leads (e.g. Cleveland Clinic pages carry "username@email.com").
+_PLACEHOLDER_EMAIL_DOMAINS = frozenset([
+    'example.com', 'example.org', 'example.net', 'email.com', 'domain.com',
+    'yourdomain.com', 'test.com', 'sample.com', 'sentry.io', 'wixpress.com',
+    'mapquest.com', 'godaddy.com', 'squarespace.com',
+])
+_PLACEHOLDER_EMAIL_LOCALPARTS = frozenset([
+    'username', 'address', 'youremail', 'your-email', 'email', 'name',
+    'user', 'example', 'firstname', 'lastname', 'no-reply', 'noreply',
+    'sentry', 'you',
+])
+
 
 def _extract_emails_from_text(text: str) -> list[str]:
-    """Extract unique email addresses from text."""
+    """Extract unique email addresses from text, skipping placeholders."""
     matches = EMAIL_PATTERN.findall(text)
-    # Filter out common false positives
     emails = []
     for email in matches:
         lower_email = email.lower()
         # Skip image extensions and common false positives
-        if not any(lower_email.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']):
-            if '@' in email and '.' in email.split('@')[1]:
-                emails.append(email)
+        if any(lower_email.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']):
+            continue
+        if '@' not in email or '.' not in email.split('@')[1]:
+            continue
+        localpart, _, domain = lower_email.partition('@')
+        if domain in _PLACEHOLDER_EMAIL_DOMAINS:
+            continue
+        if localpart in _PLACEHOLDER_EMAIL_LOCALPARTS:
+            continue
+        emails.append(email)
     return list(set(emails))
 
 
@@ -110,6 +132,10 @@ _DIRECTORY_DOMAINS = frozenset([
     'facebook.com', 'twitter.com', 'x.com', 'linkedin.com',
     'instagram.com', 'bing.com', 'google.com', 'duckduckgo.com',
     'wikipedia.org', 'wikimedia.org',
+    # Provider-directory / aggregator sites (no scrapeable practice contacts)
+    'npidb.org', 'mapquest.com', 'healthlynked.com', 'everydayhealth.care',
+    'everydayhealth.com', 'sharecare.com', 'md.com', 'wellness.com',
+    'caredash.com', 'findatopdoc.com', 'docinfo.org',
 ])
 
 # URL path markers for health-system / hospital "find a doctor" directory
