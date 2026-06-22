@@ -354,5 +354,8 @@ The actor queries the live NPPES API directly, which CMS updates daily. You get 
 **What enrichment hit rate should I expect?**
 Email enrichment depends on whether the practice has a public website. Solo practitioners typically have lower hit rates than group practices. Expect 40–70% email hit rate for individual providers, higher for organizations. LinkedIn enrichment works best for physicians at academic institutions and large health systems.
 
+**Does enrichment need a proxy?**
+Yes. Practice-website and LinkedIn discovery run a web search per provider, and search engines block datacenter IPs. Enrichment routes search through Apify Proxy (Google SERP group) automatically — no setup needed. The `proxyConfiguration` input lets you override the default if you want a different proxy group. With enrichment enabled, runs are slower than base NPI lookups because each provider triggers a live per-provider search plus a website scrape.
+
 **Can I search by taxonomy code instead of specialty name?**
 The `taxonomyDescription` field accepts text descriptions like "Cardiology" or "Orthopedic Surgery". For exact taxonomy code lookups, use the `query` field in `search_by_specialty` mode with the code directly (e.g., `207RC0000X` for Cardiovascular Disease).

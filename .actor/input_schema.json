@@ -186,6 +186,15 @@
             "default": 10,
             "minimum": 5,
             "maximum": 30
+        },
+        "proxyConfiguration": {
+            "sectionCaption": "🌐 Proxy",
+            "sectionDescription": "Web search for practice websites and LinkedIn profiles is routed through Apify Proxy. Public search engines block datacenter IPs, so a proxy is required for enrichment to return results. Defaults to the Google SERP group.",
+            "title": "🌐 Proxy configuration",
+            "type": "object",
+            "description": "Proxy used for website and LinkedIn discovery during contact enrichment. Leave at the default (Apify Proxy, Google SERP group) unless you have a specific reason to change it.",
+            "editor": "proxy",
+            "default": { "useApifyProxy": true, "apifyProxyGroups": ["GOOGLE_SERP"] }
         }
     },
     "required": ["mode"]

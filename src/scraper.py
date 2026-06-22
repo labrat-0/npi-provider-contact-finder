@@ -174,8 +174,12 @@ class NPIProviderScraper:
         client: httpx.AsyncClient,
         rate_limiter: RateLimiter,
         config: ScraperInput,
+        search_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.client = client
+        # Proxied client for web search (website/LinkedIn discovery).
+        # Falls back to the main client when no proxied client is provided.
+        self.search_client = search_client or client
         self.rate_limiter = rate_limiter
         self.config = config
         self.headers = build_headers()
@@ -283,6 +287,7 @@ class NPIProviderScraper:
                             timeout=self.config.email_enrichment_timeout,
                             enable_linkedin=self.config.enable_linkedin_enrichment,
                             enable_social=self.config.enable_social_media_enrichment,
+                            search_client=self.search_client,
                         )
                         record.contact_enrichment = enrichment
                     except Exception as e:
@@ -341,6 +346,7 @@ class NPIProviderScraper:
                         timeout=self.config.email_enrichment_timeout,
                         enable_linkedin=self.config.enable_linkedin_enrichment,
                         enable_social=self.config.enable_social_media_enrichment,
+                        search_client=self.search_client,
                     )
                     record.contact_enrichment = enrichment
                 except Exception as e:

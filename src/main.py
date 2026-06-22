@@ -84,9 +84,29 @@ async def main() -> None:
 
         await Actor.set_status_message("Searching NPPES NPI Registry...")
 
-        async with httpx.AsyncClient() as client:
+        # Build a proxied client for web search (website + LinkedIn discovery).
+        # Public search endpoints now block datacenter IPs, so search must route
+        # through Apify Proxy (Google SERP group by default). Falls back to a
+        # direct connection when proxy is unavailable (e.g. local dev).
+        search_proxy_url = None
+        if config.enable_email_enrichment:
+            proxy_input = raw_input.get("proxyConfiguration")
+            try:
+                if proxy_input:
+                    proxy_cfg = await Actor.create_proxy_configuration(actor_proxy_input=proxy_input)
+                else:
+                    proxy_cfg = await Actor.create_proxy_configuration(groups=["GOOGLE_SERP"])
+                if proxy_cfg:
+                    search_proxy_url = await proxy_cfg.new_url()
+            except Exception as e:
+                Actor.log.warning(
+                    f"Proxy configuration unavailable ({e}); web search will run "
+                    "without a proxy and may be rate-limited or blocked."
+                )
+
+        async with httpx.AsyncClient() as client, httpx.AsyncClient(proxy=search_proxy_url) as search_client:
             rate_limiter = RateLimiter(interval=config.request_interval_secs)
-            scraper = NPIProviderScraper(client, rate_limiter, config)
+            scraper = NPIProviderScraper(client, rate_limiter, config, search_client=search_client)
 
             count = state["scraped"]
             batch: list[dict] = []

@@ -113,41 +113,35 @@ _DIRECTORY_DOMAINS = frozenset([
 ])
 
 
-async def _discover_practice_website(
-    provider_name: str,
-    city: str,
-    state: str,
+async def _google_search(
+    query: str,
     client: httpx.AsyncClient,
     rate_limiter: RateLimiter,
     timeout: int = 10,
-) -> str:
+) -> tuple[list[str], str | None]:
     """
-    Discover a practice website URL using DuckDuckGo HTML search.
+    Run a Google web search and return organic result URLs.
+
+    The client is expected to be routed through Apify Proxy (Google SERP group);
+    public search engines block datacenter IPs directly.
 
     Args:
-        provider_name: Provider full name (individual) or organization name
-        city: Practice city
-        state: Practice state abbreviation (e.g. "NY")
-        client: HTTP client
+        query: Search query string
+        client: HTTP client (should be proxied for reliable results)
         rate_limiter: Rate limiter
         timeout: Request timeout in seconds
 
     Returns:
-        Practice website URL if found, empty string otherwise
+        Tuple of (ordered list of result URLs, error message or None).
+        An empty list with error=None means the search succeeded but matched
+        nothing; a non-None error means the search itself failed (block,
+        timeout, non-200) and the caller should not treat it as "no website".
     """
-    if not provider_name:
-        return ""
+    from urllib.parse import parse_qs
 
-    # Build a specific search query
-    query_parts = [provider_name]
-    if city:
-        query_parts.append(city)
-    if state:
-        query_parts.append(state)
-    query_parts.append("medical practice")
-    query = " ".join(query_parts)
-
-    search_url = "https://html.duckduckgo.com/html/?" + urlencode({"q": query})
+    search_url = "https://www.google.com/search?" + urlencode(
+        {"q": query, "num": "10", "hl": "en"}
+    )
 
     try:
         await rate_limiter.wait()
@@ -168,59 +162,93 @@ async def _discover_practice_website(
         )
 
         if response.status_code != 200:
-            logger.warning(
-                f"DuckDuckGo search returned HTTP {response.status_code} for query: {query}"
-            )
-            return ""
+            return [], f"Search failed (HTTP {response.status_code})"
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # DuckDuckGo HTML results use <a class="result__url"> or <a class="result__a">
-        # We iterate result links and skip known directory domains
-        for result in soup.select("a.result__a"):
-            href = result.get("href", "")
-            if not href or href.startswith("#"):
+        urls: list[str] = []
+        seen: set[str] = set()
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            # Google wraps organic results as /url?q=<target>&...
+            if href.startswith("/url?"):
+                target = parse_qs(urlparse(href).query).get("q", [""])[0]
+                if target:
+                    href = target
+            if not href.startswith(("http://", "https://")):
                 continue
-
-            # DuckDuckGo wraps redirect URLs; extract the real URL from uddg param
-            if "duckduckgo.com" in href and "uddg=" in href:
-                from urllib.parse import parse_qs
-                parsed = urlparse(href)
-                uddg = parse_qs(parsed.query).get("uddg", [""])
-                href = uddg[0] if uddg[0] else href
-
-            try:
-                parsed_href = urlparse(href)
-                domain = parsed_href.netloc.lower().lstrip("www.")
-            except Exception:
+            domain = urlparse(href).netloc.lower()
+            # Skip Google's own infra links (account, support, policies, etc.)
+            if domain.endswith("google.com") or domain.endswith("gstatic.com"):
                 continue
+            if href not in seen:
+                seen.add(href)
+                urls.append(href)
 
-            if not domain:
-                continue
-
-            # Skip directory/aggregator sites
-            if any(domain == d or domain.endswith("." + d) for d in _DIRECTORY_DOMAINS):
-                continue
-
-            # Must be http/https
-            if parsed_href.scheme not in ("http", "https"):
-                continue
-
-            logger.info(f"Website discovery found: {href} for provider {provider_name}")
-            return href
-
-        logger.info(f"Website discovery: no result found for {provider_name} in {city}, {state}")
-        return ""
+        return urls, None
 
     except httpx.TimeoutException:
-        logger.warning(f"Timeout during website discovery for {provider_name}")
-        return ""
+        return [], "Search timed out"
     except httpx.HTTPError as e:
-        logger.warning(f"HTTP error during website discovery for {provider_name}: {e}")
-        return ""
+        return [], f"Search HTTP error: {e}"
     except Exception as e:
-        logger.error(f"Unexpected error during website discovery for {provider_name}: {e}")
-        return ""
+        return [], f"Search error: {e}"
+
+
+async def _discover_practice_website(
+    provider_name: str,
+    city: str,
+    state: str,
+    client: httpx.AsyncClient,
+    rate_limiter: RateLimiter,
+    timeout: int = 10,
+) -> tuple[str, str | None]:
+    """
+    Discover a practice website URL using Google web search.
+
+    Args:
+        provider_name: Provider full name (individual) or organization name
+        city: Practice city
+        state: Practice state abbreviation (e.g. "NY")
+        client: HTTP client (proxied for search)
+        rate_limiter: Rate limiter
+        timeout: Request timeout in seconds
+
+    Returns:
+        Tuple of (website URL or "", error message or None). A non-None error
+        means the search itself failed, as opposed to genuinely finding nothing.
+    """
+    if not provider_name:
+        return "", None
+
+    # Build a specific search query
+    query_parts = [provider_name]
+    if city:
+        query_parts.append(city)
+    if state:
+        query_parts.append(state)
+    query_parts.append("medical practice")
+    query = " ".join(query_parts)
+
+    urls, error = await _google_search(query, client, rate_limiter, timeout)
+    if error:
+        logger.warning(f"Website discovery search failed for {provider_name}: {error}")
+        return "", error
+
+    for href in urls:
+        domain = urlparse(href).netloc.lower()
+        if domain.startswith("www."):
+            domain = domain[4:]
+
+        # Skip directory/aggregator sites
+        if any(domain == d or domain.endswith("." + d) for d in _DIRECTORY_DOMAINS):
+            continue
+
+        logger.info(f"Website discovery found: {href} for provider {provider_name}")
+        return href, None
+
+    logger.info(f"Website discovery: no result found for {provider_name} in {city}, {state}")
+    return "", None
 
 
 async def enrich_provider_contacts(
@@ -230,31 +258,52 @@ async def enrich_provider_contacts(
     timeout: int = 10,
     enable_linkedin: bool = False,
     enable_social: bool = False,
+    search_client: httpx.AsyncClient | None = None,
 ) -> ContactEnrichment:
     """
     Enrich provider with contact information from practice website.
-    
+
     Args:
         provider_data: Provider record from NPPES
-        client: HTTP client for requests
+        client: HTTP client for scraping practice websites
         rate_limiter: Rate limiter for requests
         timeout: Timeout for website scraping (seconds)
         enable_linkedin: Whether to search for LinkedIn profiles
         enable_social: Whether to extract all social media URLs
-        
+        search_client: HTTP client for web search (proxied). Falls back to
+            ``client`` when not provided.
+
     Returns:
         ContactEnrichment record with discovered contacts
     """
+    search_client = search_client or client
+
     enrichment = ContactEnrichment(
         enrichment_timestamp=datetime.utcnow().isoformat() + 'Z'
     )
 
     npi = provider_data.get('npi_number', '')
 
+    # Provider name + location, reused for website and LinkedIn search.
+    first = provider_data.get('first_name', '')
+    last = provider_data.get('last_name', '')
+    org = provider_data.get('organization_name', '')
+    provider_name = (f"{first} {last}".strip()) if (first or last) else org
+    credential = provider_data.get('credential', '')
+    city = ''
+    state = ''
+    for addr in provider_data.get('addresses', []):
+        if addr.get('address_purpose') == 'LOCATION':
+            city = addr.get('city', '')
+            state = addr.get('state', '')
+            break
+    if not city and provider_data.get('addresses'):
+        city = provider_data['addresses'][0].get('city', '')
+        state = provider_data['addresses'][0].get('state', '')
+
     # --- Step 1: Check if provider already has a website URL in endpoints ---
     practice_website = ""
     for endpoint in provider_data.get('endpoints', []):
-        ep_type = endpoint.get('endpoint_type_description', '').lower()
         ep_value = endpoint.get('endpoint', '')
         if ep_value and ('http' in ep_value or 'www.' in ep_value):
             parsed = urlparse(ep_value if '://' in ep_value else 'https://' + ep_value)
@@ -264,35 +313,16 @@ async def enrich_provider_contacts(
                 break
 
     # --- Step 2: Discover website via search if not already found ---
-    if not practice_website:
-        # Build provider name for search query
-        first = provider_data.get('first_name', '')
-        last = provider_data.get('last_name', '')
-        org = provider_data.get('organization_name', '')
-        provider_name = (f"{first} {last}".strip()) if (first or last) else org
-
-        # Find practice city/state from LOCATION address
-        city = ''
-        state = ''
-        for addr in provider_data.get('addresses', []):
-            if addr.get('address_purpose') == 'LOCATION':
-                city = addr.get('city', '')
-                state = addr.get('state', '')
-                break
-        # Fallback to any address
-        if not city and provider_data.get('addresses'):
-            city = provider_data['addresses'][0].get('city', '')
-            state = provider_data['addresses'][0].get('state', '')
-
-        if provider_name:
-            practice_website = await _discover_practice_website(
-                provider_name=provider_name,
-                city=city,
-                state=state,
-                client=client,
-                rate_limiter=rate_limiter,
-                timeout=timeout,
-            )
+    discovery_error: str | None = None
+    if not practice_website and provider_name:
+        practice_website, discovery_error = await _discover_practice_website(
+            provider_name=provider_name,
+            city=city,
+            state=state,
+            client=search_client,
+            rate_limiter=rate_limiter,
+            timeout=timeout,
+        )
 
     # --- Step 3: Scrape the discovered website ---
     if practice_website:
@@ -303,38 +333,34 @@ async def enrich_provider_contacts(
             timeout=timeout,
             enable_social=enable_social,
         )
-        # Preserve the enrichment timestamp set above (enrich_provider_website sets its own)
         # Ensure enrichment_sources includes the discovered URL
         if practice_website not in enrichment.enrichment_sources:
             enrichment.enrichment_sources = [practice_website] + enrichment.enrichment_sources
-
-        # Search for LinkedIn profile if requested and not already found
-        if enable_linkedin and not enrichment.linkedin_profile_url:
-            first = provider_data.get('first_name', '')
-            last = provider_data.get('last_name', '')
-            org = provider_data.get('organization_name', '')
-            provider_name = (f"{first} {last}".strip()) if (first or last) else org
-            credential = provider_data.get('credential', '')
-            city = ''
-            state_val = ''
-            for addr in provider_data.get('addresses', []):
-                if addr.get('address_purpose') == 'LOCATION':
-                    city = addr.get('city', '')
-                    state_val = addr.get('state', '')
-                    break
-            linkedin_url = await search_linkedin_profile(
-                provider_name=provider_name,
-                city=city,
-                state=state_val,
-                credential=credential,
-                client=client,
-            )
-            if linkedin_url:
-                enrichment.linkedin_profile_url = linkedin_url
+    elif discovery_error:
+        # The search itself failed (block/timeout) — distinct from "no website".
+        enrichment.website_scraped = False
+        enrichment.website_scrape_error = f"Website search failed: {discovery_error}"
+        logger.warning(f"Contact enrichment for NPI {npi}: {discovery_error}")
     else:
         enrichment.website_scraped = False
         enrichment.website_scrape_error = "No practice website found"
         logger.info(f"Contact enrichment for NPI {npi}: no website discovered")
+
+    # --- Step 4: LinkedIn discovery (independent of website) ---
+    if enable_linkedin and not enrichment.linkedin_profile_url and provider_name:
+        linkedin_url = await search_linkedin_profile(
+            provider_name=provider_name,
+            city=city,
+            state=state,
+            credential=credential,
+            client=search_client,
+            rate_limiter=rate_limiter,
+            timeout=timeout,
+        )
+        if linkedin_url:
+            enrichment.linkedin_profile_url = linkedin_url
+            if linkedin_url not in enrichment.enrichment_sources:
+                enrichment.enrichment_sources = enrichment.enrichment_sources + [linkedin_url]
 
     return enrichment
 
@@ -423,32 +449,58 @@ async def enrich_provider_website(
     return enrichment
 
 
+# Matches a LinkedIn member profile URL (linkedin.com/in/<slug>)
+_LINKEDIN_PROFILE = re.compile(r'^https?://(?:[\w.]+\.)?linkedin\.com/in/[\w%-]+', re.I)
+
+
 async def search_linkedin_profile(
     provider_name: str,
     city: str,
     state: str,
     credential: str,
     client: httpx.AsyncClient,
+    rate_limiter: RateLimiter,
+    timeout: int = 10,
 ) -> str:
     """
-    Search for LinkedIn profile URL for a provider.
-    
+    Search for a provider's LinkedIn profile URL via Google web search.
+
     Args:
         provider_name: Provider's full name
         city: Practice city
         state: Practice state
         credential: Provider credential (MD, DO, NP, etc.)
-        client: HTTP client
-        
+        client: HTTP client (proxied for search)
+        rate_limiter: Rate limiter
+        timeout: Request timeout in seconds
+
     Returns:
         LinkedIn profile URL if found, empty string otherwise
     """
-    # PLACEHOLDER: LinkedIn profile search implementation
-    # In production, this would:
-    # 1. Use Google search with site:linkedin.com/in
-    # 2. Parse search results
-    # 3. Return best match
-    
-    # For now, return empty (feature coming soon)
-    logger.info(f"LinkedIn search for {provider_name}: Feature coming soon")
+    if not provider_name:
+        return ""
+
+    query_parts = ["site:linkedin.com/in", provider_name]
+    if credential:
+        query_parts.append(credential)
+    if city:
+        query_parts.append(city)
+    if state:
+        query_parts.append(state)
+    query = " ".join(query_parts)
+
+    urls, error = await _google_search(query, client, rate_limiter, timeout)
+    if error:
+        logger.warning(f"LinkedIn search failed for {provider_name}: {error}")
+        return ""
+
+    for href in urls:
+        match = _LINKEDIN_PROFILE.match(href)
+        if match:
+            # Strip query string / tracking params, keep the canonical profile URL.
+            profile_url = href.split("?")[0]
+            logger.info(f"LinkedIn profile found for {provider_name}: {profile_url}")
+            return profile_url
+
+    logger.info(f"LinkedIn search: no profile found for {provider_name}")
     return ""
