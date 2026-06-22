@@ -328,6 +328,7 @@ All enrichment options work the same in bulk mode.
 | `requestIntervalSecs` | number | `0.5` | Seconds between NPPES API requests. |
 | `timeoutSecs` | integer | `30` | HTTP timeout per request (seconds). |
 | `maxRetries` | integer | `5` | Max retry attempts on failed requests. |
+| `proxyConfiguration` | object | Apify Proxy (Google SERP) | Proxy used for website/LinkedIn search during enrichment. Default works out of the box. |
 
 ---
 
@@ -340,7 +341,7 @@ A National Provider Identifier — a unique 10-digit ID assigned to every licens
 The first 25 results per run are free. Subscribe to the actor for unlimited results (up to 1,000 per run).
 
 **How does email enrichment work?**
-The actor searches for the provider's practice website via DuckDuckGo, then scrapes that site for email addresses, classifying them as office, billing, or general contact. It also extracts any social media links found on the page. Success depends on whether the practice has a publicly accessible website.
+The actor runs a web search (Google, routed through Apify Proxy) to find the provider's practice website, then scrapes that site for email addresses, classifying them as office, billing, or general contact. It also extracts any social media links and the provider's LinkedIn profile. Success depends on whether the practice has a publicly accessible website.
 
 **How fresh is the data?**
 The actor queries the live NPPES API directly, which CMS updates daily. You get current provider data, not a static database snapshot.
@@ -352,7 +353,7 @@ The actor queries the live NPPES API directly, which CMS updates daily. You get 
 `console.apify.com` URLs load a web page in your browser. The actor needs a direct file download URL to read your CSV. Always use the link icon in Key-Value Store to copy the `api.apify.com` URL, not the browser address bar.
 
 **What enrichment hit rate should I expect?**
-Email enrichment depends on whether the practice has a public website. Solo practitioners typically have lower hit rates than group practices. Expect 40–70% email hit rate for individual providers, higher for organizations. LinkedIn enrichment works best for physicians at academic institutions and large health systems.
+Email enrichment depends on whether the practice has a public website. For providers at independent or private practices, expect roughly a 40–70% email hit rate. Physicians employed by large hospital systems often have no public email address (their system profile pages don't expose one), so email coverage is lower for that group — though their practice website and LinkedIn profile still populate. LinkedIn enrichment works best for physicians at academic institutions and large health systems.
 
 **Does enrichment need a proxy?**
 Yes. Practice-website and LinkedIn discovery run a web search per provider, and search engines block datacenter IPs. Enrichment routes search through Apify Proxy (Google SERP group) automatically — no setup needed. The `proxyConfiguration` input lets you override the default if you want a different proxy group. With enrichment enabled, runs are slower than base NPI lookups because each provider triggers a live per-provider search plus a website scrape.
