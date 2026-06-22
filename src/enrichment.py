@@ -100,8 +100,8 @@ def _classify_emails(emails: list[str]) -> dict[str, str]:
     return classified
 
 
-# Domains to skip when evaluating DuckDuckGo search results
-# These are directories / aggregators, not practice websites
+# Domains to skip when evaluating search results.
+# These are directories / aggregators, not practice websites.
 _DIRECTORY_DOMAINS = frozenset([
     'healthgrades.com', 'vitals.com', 'zocdoc.com', 'doximity.com',
     'webmd.com', 'ratemds.com', 'yelp.com', 'yellowpages.com',
@@ -111,6 +111,29 @@ _DIRECTORY_DOMAINS = frozenset([
     'instagram.com', 'bing.com', 'google.com', 'duckduckgo.com',
     'wikipedia.org', 'wikimedia.org',
 ])
+
+# URL path markers for health-system / hospital "find a doctor" directory
+# listings. These pages (e.g. ascension.org/find-care/provider/...) are
+# provider lookups, not a practice's own site, and rarely carry scrapeable
+# emails — skip them and keep looking for the real site. Path-based so it
+# generalizes across every health system instead of a domain allowlist.
+_DIRECTORY_PATH_MARKERS = (
+    '/find-care', '/find-a-doctor', '/find-a-physician', '/find-a-provider',
+    '/findadoctor', '/find_a_doctor', '/finddoctor', '/doctor-search',
+    '/provider-search', '/physician-finder', '/our-providers', '/our-doctors',
+)
+
+
+def _is_directory_url(href: str) -> bool:
+    """True if the URL is a known directory domain or a provider-finder path."""
+    parsed = urlparse(href)
+    domain = parsed.netloc.lower()
+    if domain.startswith('www.'):
+        domain = domain[4:]
+    if any(domain == d or domain.endswith('.' + d) for d in _DIRECTORY_DOMAINS):
+        return True
+    path = parsed.path.lower()
+    return any(marker in path for marker in _DIRECTORY_PATH_MARKERS)
 
 
 async def _google_search(
@@ -240,12 +263,8 @@ async def _discover_practice_website(
         return "", error
 
     for href in urls:
-        domain = urlparse(href).netloc.lower()
-        if domain.startswith("www."):
-            domain = domain[4:]
-
-        # Skip directory/aggregator sites
-        if any(domain == d or domain.endswith("." + d) for d in _DIRECTORY_DOMAINS):
+        # Skip directory/aggregator sites and provider-finder listing pages
+        if _is_directory_url(href):
             continue
 
         logger.info(f"Website discovery found: {href} for provider {provider_name}")
@@ -366,6 +385,8 @@ async def enrich_provider_contacts(
             client=search_client,
             rate_limiter=rate_limiter,
             timeout=timeout,
+            first_name=first,
+            last_name=last,
         )
         if linkedin_url:
             enrichment.linkedin_profile_url = linkedin_url
@@ -463,6 +484,26 @@ async def enrich_provider_website(
 _LINKEDIN_PROFILE = re.compile(r'^https?://(?:[\w.]+\.)?linkedin\.com/in/[\w%-]+', re.I)
 
 
+def _linkedin_slug_matches_name(href: str, first: str, last: str) -> bool:
+    """
+    True if the LinkedIn profile slug plausibly belongs to this provider.
+
+    LinkedIn member slugs are typically ``firstname-lastname-<hash>``. We
+    require BOTH the first and last name (alpha-only) to appear in the slug,
+    rejecting wrong-person matches like ``richard-pilcher`` for a provider
+    named William Pilcher. Conservative by design: precision over recall.
+    """
+    first_a = re.sub(r'[^a-z]', '', first.lower())
+    last_a = re.sub(r'[^a-z]', '', last.lower())
+    if not first_a or not last_a:
+        return False
+    # Slug only (path after /in/), alpha-only.
+    path = urlparse(href).path
+    slug = path[path.lower().find('/in/') + 4:] if '/in/' in path.lower() else path
+    slug_a = re.sub(r'[^a-z]', '', slug.lower())
+    return first_a in slug_a and last_a in slug_a
+
+
 async def search_linkedin_profile(
     provider_name: str,
     city: str,
@@ -471,6 +512,8 @@ async def search_linkedin_profile(
     client: httpx.AsyncClient,
     rate_limiter: RateLimiter,
     timeout: int = 10,
+    first_name: str = "",
+    last_name: str = "",
 ) -> str:
     """
     Search for a provider's LinkedIn profile URL via Google web search.
@@ -504,13 +547,21 @@ async def search_linkedin_profile(
         logger.warning(f"LinkedIn search failed for {provider_name}: {error}")
         return ""
 
+    # If we have first/last names, require the slug to match to avoid
+    # wrong-person matches. Fall back to first-result only when names are
+    # unavailable (e.g. organization records).
+    verify = bool(first_name and last_name)
+
     for href in urls:
         match = _LINKEDIN_PROFILE.match(href)
-        if match:
-            # Strip query string / tracking params, keep the canonical profile URL.
-            profile_url = href.split("?")[0]
-            logger.info(f"LinkedIn profile found for {provider_name}: {profile_url}")
-            return profile_url
+        if not match:
+            continue
+        if verify and not _linkedin_slug_matches_name(href, first_name, last_name):
+            continue
+        # Strip query string / tracking params, keep the canonical profile URL.
+        profile_url = href.split("?")[0]
+        logger.info(f"LinkedIn profile found for {provider_name}: {profile_url}")
+        return profile_url
 
-    logger.info(f"LinkedIn search: no profile found for {provider_name}")
+    logger.info(f"LinkedIn search: no confident profile match for {provider_name}")
     return ""
