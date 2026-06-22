@@ -282,14 +282,17 @@ async def enrich_provider_contacts(
         enrichment_timestamp=datetime.utcnow().isoformat() + 'Z'
     )
 
-    npi = provider_data.get('npi_number', '')
+    # Raw NPPES results nest provider names under "basic" and use "number"
+    # for the NPI. Fall back to flat keys so normalized records also work.
+    basic = provider_data.get('basic', {})
+    npi = str(provider_data.get('number', '') or provider_data.get('npi_number', ''))
 
     # Provider name + location, reused for website and LinkedIn search.
-    first = provider_data.get('first_name', '')
-    last = provider_data.get('last_name', '')
-    org = provider_data.get('organization_name', '')
+    first = basic.get('first_name', '') or provider_data.get('first_name', '')
+    last = basic.get('last_name', '') or provider_data.get('last_name', '')
+    org = basic.get('organization_name', '') or provider_data.get('organization_name', '')
     provider_name = (f"{first} {last}".strip()) if (first or last) else org
-    credential = provider_data.get('credential', '')
+    credential = basic.get('credential', '') or provider_data.get('credential', '')
     city = ''
     state = ''
     for addr in provider_data.get('addresses', []):
