@@ -139,7 +139,11 @@ async def _google_search(
     """
     from urllib.parse import parse_qs
 
-    search_url = "https://www.google.com/search?" + urlencode(
+    # NOTE: target URL is HTTP, not HTTPS. Apify's Google SERP proxy only
+    # serves plain-HTTP requests (absolute-form through the proxy); an HTTPS
+    # target forces a CONNECT tunnel the SERP proxy rejects with 400. Over a
+    # direct (non-proxy) connection Google simply redirects HTTP -> HTTPS.
+    search_url = "http://www.google.com/search?" + urlencode(
         {"q": query, "num": "10", "hl": "en"}
     )
 
@@ -310,7 +314,10 @@ async def enrich_provider_contacts(
         ep_value = endpoint.get('endpoint', '')
         if ep_value and ('http' in ep_value or 'www.' in ep_value):
             parsed = urlparse(ep_value if '://' in ep_value else 'https://' + ep_value)
-            if parsed.scheme in ('http', 'https'):
+            # Require a real host — guards against malformed NPPES endpoint
+            # values like "https:/host/..." (single slash) that parse with an
+            # empty netloc and are not usable URLs.
+            if parsed.scheme in ('http', 'https') and parsed.netloc:
                 practice_website = ep_value
                 logger.info(f"NPI {npi}: using website from endpoints field: {practice_website}")
                 break
