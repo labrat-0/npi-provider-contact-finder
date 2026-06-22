@@ -136,6 +136,14 @@ def _is_directory_url(href: str) -> bool:
     return any(marker in path for marker in _DIRECTORY_PATH_MARKERS)
 
 
+# Google's own hosts (search chrome, footer, infra) across all TLDs/subdomains.
+_GOOGLE_HOST = re.compile(
+    r'(^|\.)(google\.[a-z.]+|gstatic\.com|googleusercontent\.com|'
+    r'googleapis\.com|googleadservices\.com|youtube\.com)$',
+    re.I,
+)
+
+
 async def _google_search(
     query: str,
     client: httpx.AsyncClient,
@@ -205,8 +213,11 @@ async def _google_search(
             if not href.startswith(("http://", "https://")):
                 continue
             domain = urlparse(href).netloc.lower()
-            # Skip Google's own infra links (account, support, policies, etc.)
-            if domain.endswith("google.com") or domain.endswith("gstatic.com"):
+            # Skip Google's own chrome/footer links. The SERP proxy returns
+            # localized Google domains (google.ae, google.com.br, google.co.uk,
+            # ...), so a plain "endswith google.com" check misses them and the
+            # footer "about/products" link gets picked as a fake result.
+            if _GOOGLE_HOST.search(domain):
                 continue
             if href not in seen:
                 seen.add(href)
@@ -328,9 +339,18 @@ async def enrich_provider_contacts(
         state = provider_data['addresses'][0].get('state', '')
 
     # --- Step 1: Check if provider already has a website URL in endpoints ---
+    # NPPES endpoints are mostly FHIR API URLs and DIRECT secure-messaging
+    # addresses, neither of which is a practice website. Only consider
+    # endpoint types that could be a real site.
     practice_website = ""
     for endpoint in provider_data.get('endpoints', []):
         ep_value = endpoint.get('endpoint', '')
+        ep_type = (
+            endpoint.get('endpointType', '')
+            or endpoint.get('endpoint_type', '')
+        ).upper()
+        if ep_type in ('FHIR', 'DIRECT', 'REST', 'SOAP', 'OTHER'):
+            continue
         if ep_value and ('http' in ep_value or 'www.' in ep_value):
             parsed = urlparse(ep_value if '://' in ep_value else 'https://' + ep_value)
             # Require a real host — guards against malformed NPPES endpoint
