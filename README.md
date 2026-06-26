@@ -333,6 +333,27 @@ All enrichment options work the same in bulk mode.
 
 ---
 
+## 💰 Pricing
+
+**You pay only for the data a run actually delivers.** Pricing is pay-per-event: each charge maps to a field that appears in your output, so you can reconcile every cent against your dataset. No result, no charge.
+
+| You are charged | When (and only when) | Price |
+|---|---|---|
+| Provider record | a provider is returned (name, address, specialty, NPI) | **$0.001** / record |
+| Phone number | the record includes a phone number | **$0.003** / record |
+| Email found | the record includes a contact email | **$0.012** / email result |
+| Verified email | that email passed a deliverability (MX) check | **$0.020** / email result (replaces "email found") |
+
+- **First 25 results per run are free** (full base provider data).
+- A single email result is billed **once** — either as "email found" *or* "verified email", never both.
+- A run with no emails simply never incurs the email charges. You are billed for records and phones you received, nothing more.
+
+> **Enrichment status:** email + verification enrichment is being re-activated shortly under the model above. While it is paused, runs return base provider data (records + phone numbers) only, and only those events are billed. The `email-found` / `verified-email` charges begin once enrichment is back on.
+
+Compared to enterprise databases (IQVIA, Definitive Healthcare at $25K–50K/year) or manual research, a typical targeted list of a few thousand providers with contacts costs a few dollars.
+
+---
+
 ## ❓ FAQ
 
 **What is an NPI number?**
@@ -341,10 +362,10 @@ A National Provider Identifier — a unique 10-digit ID assigned to every licens
 **Is this free to use?**
 Yes — the first 25 results per run are free and include full base NPI data (name, address, specialty, NPI Registry link). Subscribe to the actor for unlimited results (up to 1,000 per run).
 
-> **Note:** Contact enrichment (emails, LinkedIn, social profiles) is temporarily paused while we improve its quality and pricing. Runs return base NPI data only; the enrichment options are inactive until it returns.
+> **Note:** Email enrichment is being re-activated shortly under the new pay-per-event pricing (see the Pricing section). While it is paused, runs return base provider data (records + phone numbers) only.
 
 **How does email enrichment work?**
-The actor runs a web search (Google, routed through Apify Proxy) to find the provider's practice website, then scrapes that site for email addresses, classifying them as office, billing, or general contact. It also extracts any social media links and the provider's LinkedIn profile. Success depends on whether the practice has a publicly accessible website.
+For each provider, the actor resolves the practice website cheapest-first: it checks the NPPES website field, reuses results already found for the same practice in your run, and guesses the obvious practice domain — only running a paid web search as a last resort. It then scrapes the site for email addresses, keeps the ones that plausibly belong to the provider, and runs a deliverability (MX) check to mark which are verified. You are charged only for emails that actually appear in the output (verified ones at a higher rate). A LinkedIn URL found for free on the website is included as a bonus, unbilled.
 
 **How fresh is the data?**
 The actor queries the live NPPES API directly, which CMS updates daily. You get current provider data, not a static database snapshot.
@@ -356,10 +377,10 @@ The actor queries the live NPPES API directly, which CMS updates daily. You get 
 `console.apify.com` URLs load a web page in your browser. The actor needs a direct file download URL to read your CSV. Always use the link icon in Key-Value Store to copy the `api.apify.com` URL, not the browser address bar.
 
 **What enrichment hit rate should I expect?**
-Email enrichment depends on whether the practice has a public website. For providers at independent or private practices, expect roughly a 40–70% email hit rate. Physicians employed by large hospital systems often have no public email address (their system profile pages don't expose one), so email coverage is lower for that group — though their practice website and LinkedIn profile still populate. LinkedIn enrichment works best for physicians at academic institutions and large health systems.
+Email enrichment depends on whether the practice has a public website. For providers at independent or private practices, expect roughly a 40–70% email hit rate. Physicians employed by large hospital systems often have no public email address (their system profile pages don't expose one), so email coverage is lower for that group — though their practice website still populates. Because you are billed per email actually returned, a low hit rate just means a lower bill, never wasted spend.
 
 **Does enrichment need a proxy?**
-Yes. Practice-website and LinkedIn discovery run a web search per provider, and search engines block datacenter IPs. Enrichment routes search through Apify Proxy (Google SERP group) automatically — no setup needed. The `proxyConfiguration` input lets you override the default if you want a different proxy group. With enrichment enabled, runs are slower than base NPI lookups because each provider triggers a live per-provider search plus a website scrape.
+Only sometimes. The actor first tries free ways to find a practice website (NPPES website field, an in-run cache, and an obvious-domain guess); it falls back to a proxied web search only when those miss. That search routes through Apify Proxy (Google SERP group) automatically — no setup needed. The `proxyConfiguration` input lets you override the default. Runs with enrichment are slower than base lookups because providers that need the fallback search trigger a live lookup plus a website scrape.
 
 **Can I search by taxonomy code instead of specialty name?**
 The `taxonomyDescription` field accepts text descriptions like "Cardiology" or "Orthopedic Surgery". For exact taxonomy code lookups, use the `query` field in `search_by_specialty` mode with the code directly (e.g., `207RC0000X` for Cardiovascular Disease).

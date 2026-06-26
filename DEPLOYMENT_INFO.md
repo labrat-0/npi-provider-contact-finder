@@ -46,22 +46,27 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 
 ## 💰 Pricing
 
-**Pay-Per-Contact Pricing:**
+**Pay-Per-Event (charge-on-success):** the customer is billed only for values that actually appear in their output. Event ids must match the code in `src/billing.py`.
 
-| Tier | Base NPI Data | + Email Enrichment | + LinkedIn | + Full Enrichment |
-|------|---------------|-------------------|------------|-------------------|
-| **Standard** | $0.70/1K | $1.00/1K | $1.20/1K | $1.50/1K |
-| **1K contacts** | $0.70 | $1.00 | $1.20 | $1.50 |
-| **10K contacts** | $7.00 | $10.00 | $12.00 | $15.00 |
-| **100K contacts** | $70.00 | $100.00 | $120.00 | $150.00 |
+| Event id | Charged when | Price |
+|----------|--------------|-------|
+| `provider-record` | a provider record is returned | $0.001 |
+| `phone-found` | the record includes a phone number | $0.003 |
+| `email-found` | the record includes an email (unverified) | $0.012 |
+| `verified-email` | the email passed an MX deliverability check (instead of `email-found`) | $0.020 |
+| `apify-actor-start` | per run | $0.01 |
+
+Keep **"User pays platform usage costs: No"**. First 25 results per run are free.
 
 **Pricing Calculator**:
 
-**Example Use Case**: Generate 5,000 cardiology leads in California with emails
+**Example Use Case**: 5,000 cardiology providers in California, ~90% with a phone, ~50% with an email (60% of those verified)
 
-- Base NPI data: 5,000 × $0.70/1K = $3.50
-- Email enrichment: 5,000 × $0.30/1K = $1.50
-- **Total**: **$5.00**
+- Records: 5,000 × $0.001 = $5.00
+- Phones: 4,500 × $0.003 = $13.50
+- Verified emails: 1,500 × $0.020 = $30.00
+- Unverified emails: 1,000 × $0.012 = $12.00
+- **Total**: **~$60.50** (customer pays only for the ~delivered fields)
 
 **Compare to Alternatives**:
 
@@ -202,20 +207,16 @@ npi provider contacts, healthcare lead generation, doctor email finder, physicia
 - **Primary**: Lead Generation
 - **Secondary**: Healthcare, Business Intelligence, Sales & Marketing
 
-### 5. **Pricing** (in Pricing tab):
+### 5. **Pricing** (in Pricing tab — Pay-Per-Event):
 
-**Base Pricing**:
-- Pay-Per-Event: $0.0007 per provider contact ($0.70 per 1,000 contacts)
+Create these events with EXACTLY these ids (they must match `src/billing.py`):
+- `provider-record`: $0.001
+- `phone-found`: $0.003
+- `email-found`: $0.012
+- `verified-email`: $0.020
+- `apify-actor-start`: $0.01
 
-**With Enrichment Add-ons**:
-- Email enrichment: +$0.0003 per contact ($0.30 per 1,000)
-- LinkedIn enrichment: +$0.0005 per contact ($0.50 per 1,000)
-- Social media enrichment: +$0.0002 per contact ($0.20 per 1,000)
-
-**Recommended Tier Examples**:
-- Standard (base NPI data only): $0.70 / 1,000 contacts
-- Premium (with email enrichment): $1.00 / 1,000 contacts
-- Ultra-Premium (full enrichment): $1.50 / 1,000 contacts
+Remove the old `apify-default-dataset-item` event. Keep **"User pays platform usage costs: No"**. Pay-per-event changes take ~2 weeks to take effect on Apify.
 
 ### 6. **Icon/Avatar**: 
 Upload healthcare-themed icon:
