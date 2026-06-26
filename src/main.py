@@ -27,22 +27,35 @@ FREE_TIER_LIMIT = 25
 ENRICHMENT_DISABLED = True
 
 
-async def _push_and_charge(batch: list[dict], charging_enabled: bool) -> None:
+async def _push_and_charge(batch: list[dict], charging_enabled: bool) -> bool:
     """Push a batch to the dataset, then charge pay-per-event events for each
     delivered record (charge-on-success). Charging only runs for paying users
     on the platform; the Apify SDK enforces the customer's max-charge budget, so
-    we never over-bill. A failed individual charge is logged, not fatal."""
+    we never over-bill. A failed individual charge is logged, not fatal.
+
+    Returns True if the customer's max-charge budget was reached, so the caller
+    can stop producing further (unbillable) results."""
     if not batch:
-        return
+        return False
     await Actor.push_data(batch)
     if not charging_enabled:
-        return
+        return False
+    limit_reached = False
     for record in batch:
         for event in events_for_record(record):
             try:
-                await Actor.charge(event)
+                result = await Actor.charge(event)
             except Exception as e:
                 Actor.log.warning(f"charge({event}) failed: {e}")
+                continue
+            # The SDK reports when the run hits the customer's configured budget.
+            if getattr(result, "event_charge_limit_reached", False):
+                limit_reached = True
+    if limit_reached:
+        Actor.log.info(
+            "Customer max-charge budget reached; stopping further results."
+        )
+    return limit_reached
 
 
 async def main() -> None:
@@ -179,7 +192,7 @@ async def main() -> None:
             batch_size = 25
 
             if config.mode == ScrapingMode.BULK_LOOKUP:
-                # Existing bulk path — unchanged, no dedup needed (NPIs are explicit)
+                # Existing bulk path — no dedup needed (NPIs are explicit)
                 try:
                     async for item in scraper.scrape_bulk():
                         if count >= max_results:
@@ -188,9 +201,11 @@ async def main() -> None:
                         count += 1
                         state["scraped"] = count
                         if len(batch) >= batch_size:
-                            await _push_and_charge(batch, charging_enabled)
+                            budget_done = await _push_and_charge(batch, charging_enabled)
                             batch = []
                             await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
+                            if budget_done:
+                                break
                     if batch:
                         await _push_and_charge(batch, charging_enabled)
                 except Exception as e:
@@ -207,9 +222,10 @@ async def main() -> None:
                 )
                 seen_npis: set[str] = set()
 
+                budget_done = False
                 try:
                     for query in search_queries:
-                        if count >= max_results:
+                        if count >= max_results or budget_done:
                             break
 
                         config.query = query
@@ -231,9 +247,11 @@ async def main() -> None:
                             state["scraped"] = count
 
                             if len(batch) >= batch_size:
-                                await _push_and_charge(batch, charging_enabled)
+                                budget_done = await _push_and_charge(batch, charging_enabled)
                                 batch = []
                                 await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
+                                if budget_done:
+                                    break
 
                     if batch:
                         await _push_and_charge(batch, charging_enabled)
