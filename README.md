@@ -317,7 +317,8 @@ All enrichment options work the same in bulk mode.
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `enableEmailEnrichment` | boolean | `false` | Scrape practice websites for email addresses (office, billing, general). |
-| `enableLinkedInEnrichment` | boolean | `false` | Search for provider LinkedIn profiles. Runs a second web search per provider, so it roughly doubles per-lead search cost. |
+| `personalEmailsOnly` | boolean | `false` | Keep only emails containing the provider's name (e.g. `jsmith@`); drop generic mailboxes like `info@`/`billing@`. For direct, named outreach. |
+| `enableLinkedInEnrichment` | boolean | `false` | Deprecated and no longer billed. Dedicated LinkedIn search was removed; a LinkedIn URL found free on the website is still returned. No effect. |
 | `enableSocialMediaEnrichment` | boolean | `false` | Extract Facebook, Twitter, Instagram, Healthgrades, Vitals, and Zocdoc links. |
 | `emailEnrichmentTimeout` | integer | `10` | Timeout per website scrape (seconds). Lower = faster, may miss some emails. |
 | `maxEnrichmentResults` | integer | `50` | Cap on providers enriched per run (each fires a web search). Providers past the cap still return base NPI data. Raise it for larger enriched runs. |

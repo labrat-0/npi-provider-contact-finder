@@ -308,6 +308,7 @@ class NPIProviderScraper:
                             enable_social=self.config.enable_social_media_enrichment,
                             search_client=self.search_client,
                             website_cache=self._website_cache,
+                            personal_emails_only=self.config.personal_emails_only,
                         )
                         record.contact_enrichment = enrichment
                     except Exception as e:
@@ -385,6 +386,7 @@ class NPIProviderScraper:
                         enable_social=self.config.enable_social_media_enrichment,
                         search_client=self.search_client,
                         website_cache=self._website_cache,
+                        personal_emails_only=self.config.personal_emails_only,
                     )
                     record.contact_enrichment = enrichment
                 except Exception as e:

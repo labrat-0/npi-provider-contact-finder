@@ -179,6 +179,13 @@
             "default": false,
             "editor": "checkbox"
         },
+        "personalEmailsOnly": {
+            "title": "🎯 Personal Emails Only",
+            "type": "boolean",
+            "description": "Keep only emails whose address contains the provider's name (e.g. jsmith@, paula.cantu@). Drops generic practice mailboxes like info@ and billing@. Useful for direct, named outreach. Records with no personal email return no email and are not billed for one.",
+            "default": false,
+            "editor": "checkbox"
+        },
         "emailEnrichmentTimeout": {
             "title": "⏱️ Email Enrichment Timeout (seconds)",
             "type": "integer",
