@@ -168,7 +168,7 @@
         "enableLinkedInEnrichment": {
             "title": "💼 Enable LinkedIn Enrichment",
             "type": "boolean",
-            "description": "Search for provider LinkedIn profiles. Useful for B2B outreach and relationship building. Adds $0.50/1K contacts to pricing.",
+            "description": "Search for provider LinkedIn profiles. Useful for B2B outreach and relationship building. Adds $0.50/1K contacts to pricing. Note: this runs a second web search per provider on top of website discovery, so it roughly doubles the per-lead search cost.",
             "default": false,
             "editor": "checkbox"
         },
@@ -190,8 +190,8 @@
         "maxEnrichmentResults": {
             "title": "🧮 Max Enrichment Results (per run)",
             "type": "integer",
-            "description": "Maximum number of providers to run paid contact enrichment on per run. Each enriched provider triggers a web search, so this caps the run's enrichment cost. Providers beyond this limit still return base NPI data (no enrichment).",
-            "default": 500,
+            "description": "Maximum number of providers to run paid contact enrichment on per run. Each enriched provider triggers a web search, so this caps the run's enrichment cost. Providers beyond this limit still return base NPI data (no enrichment). Paying users can raise this for larger enriched runs.",
+            "default": 50,
             "minimum": 1,
             "maximum": 100000
         },
