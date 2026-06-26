@@ -8,6 +8,7 @@ import os
 import httpx
 from apify import Actor
 
+from .billing import events_for_record
 from .models import ScraperInput, ScrapingMode
 from .scraper import NPIProviderScraper
 from .utils import RateLimiter
@@ -24,6 +25,24 @@ FREE_TIER_LIMIT = 25
 # repriced or redesigned to skip the paid search. Flip to False to restore normal
 # enrichment behavior (per-user opt-in via the enable* input flags).
 ENRICHMENT_DISABLED = True
+
+
+async def _push_and_charge(batch: list[dict], charging_enabled: bool) -> None:
+    """Push a batch to the dataset, then charge pay-per-event events for each
+    delivered record (charge-on-success). Charging only runs for paying users
+    on the platform; the Apify SDK enforces the customer's max-charge budget, so
+    we never over-bill. A failed individual charge is logged, not fatal."""
+    if not batch:
+        return
+    await Actor.push_data(batch)
+    if not charging_enabled:
+        return
+    for record in batch:
+        for event in events_for_record(record):
+            try:
+                await Actor.charge(event)
+            except Exception as e:
+                Actor.log.warning(f"charge({event}) failed: {e}")
 
 
 async def main() -> None:
@@ -86,6 +105,11 @@ async def main() -> None:
         is_paying = os.environ.get("APIFY_IS_AT_HOME") == "1" and os.environ.get(
             "APIFY_USER_IS_PAYING"
         ) == "1"
+
+        # Charge pay-per-event only for paying users on the platform. Off-platform
+        # (local dev) and free-tier runs never bill. The SDK enforces the
+        # customer's max-charge budget.
+        charging_enabled = is_paying and os.environ.get("APIFY_IS_AT_HOME") == "1"
 
         max_results = config.max_results
         if not is_paying and os.environ.get("APIFY_IS_AT_HOME") == "1":
@@ -164,16 +188,16 @@ async def main() -> None:
                         count += 1
                         state["scraped"] = count
                         if len(batch) >= batch_size:
-                            await Actor.push_data(batch)
+                            await _push_and_charge(batch, charging_enabled)
                             batch = []
                             await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
                     if batch:
-                        await Actor.push_data(batch)
+                        await _push_and_charge(batch, charging_enabled)
                 except Exception as e:
                     state["failed"] += 1
                     Actor.log.error(f"Scraping error: {e}")
                     if batch:
-                        await Actor.push_data(batch)
+                        await _push_and_charge(batch, charging_enabled)
             else:
                 # Multi-query loop for search and get_provider modes
                 search_queries = (
@@ -207,18 +231,18 @@ async def main() -> None:
                             state["scraped"] = count
 
                             if len(batch) >= batch_size:
-                                await Actor.push_data(batch)
+                                await _push_and_charge(batch, charging_enabled)
                                 batch = []
                                 await Actor.set_status_message(f"Scraped {count}/{max_results} providers")
 
                     if batch:
-                        await Actor.push_data(batch)
+                        await _push_and_charge(batch, charging_enabled)
 
                 except Exception as e:
                     state["failed"] += 1
                     Actor.log.error(f"Scraping error: {e}")
                     if batch:
-                        await Actor.push_data(batch)
+                        await _push_and_charge(batch, charging_enabled)
 
         msg = f"Done. Scraped {count} providers."
         if state["failed"] > 0:
