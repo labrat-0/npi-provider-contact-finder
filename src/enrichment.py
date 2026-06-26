@@ -145,6 +145,31 @@ def _filter_emails_by_provider(
     return [e for e in emails if _email_belongs_to_provider(e, first, last, website_url)]
 
 
+def _email_localpart_has_name(email: str, first: str, last: str) -> bool:
+    """
+    True if the email's localpart contains the provider's first or last name
+    (>=3 chars). This is the strict "personal" test for ``personalEmailsOnly``:
+    keep ``paula.cantu@`` / ``jsmith@`` but drop generic role mailboxes
+    (``info@``, ``billing@``) and name-matched-domain-only addresses
+    (``info@cantumed.com``). Org records (no name) match nothing.
+    """
+    local_a = _alpha(email.partition('@')[0])
+    first_a = _alpha(first)
+    last_a = _alpha(last)
+    if len(last_a) >= 3 and last_a in local_a:
+        return True
+    if len(first_a) >= 3 and first_a in local_a:
+        return True
+    return False
+
+
+def _filter_personal_emails(
+    emails: list[str], first: str, last: str
+) -> list[str]:
+    """Keep only emails whose localpart carries the provider's name."""
+    return [e for e in emails if _email_localpart_has_name(e, first, last)]
+
+
 # Per-run cache of domain -> has-MX-record, so we resolve each mail domain once.
 _MX_CACHE: dict[str, bool] = {}
 
@@ -523,6 +548,7 @@ async def enrich_provider_contacts(
     enable_social: bool = False,
     search_client: httpx.AsyncClient | None = None,
     website_cache: dict[tuple[str, str, str], str] | None = None,
+    personal_emails_only: bool = False,
 ) -> ContactEnrichment:
     """
     Enrich provider with contact information from practice website.
@@ -640,6 +666,7 @@ async def enrich_provider_contacts(
             enable_social=enable_social,
             first_name=first,
             last_name=last,
+            personal_emails_only=personal_emails_only,
         )
         # Ensure enrichment_sources includes the discovered URL
         if practice_website not in enrichment.enrichment_sources:
@@ -670,6 +697,7 @@ async def enrich_provider_website(
     enable_social: bool = True,
     first_name: str = "",
     last_name: str = "",
+    personal_emails_only: bool = False,
 ) -> ContactEnrichment:
     """
     Scrape a practice website for contact information.
@@ -682,6 +710,8 @@ async def enrich_provider_website(
         enable_social: Whether to extract social media links
         first_name: Provider first name, used to drop wrong-person emails
         last_name: Provider last name, used to drop wrong-person emails
+        personal_emails_only: keep only emails whose localpart carries the
+            provider's name (drop generic role mailboxes)
 
     Returns:
         ContactEnrichment with discovered contacts
@@ -715,6 +745,9 @@ async def enrich_provider_website(
         # different person's address, e.g. zach.carlyle@iowa.gov for "Paula Cantu").
         raw_emails = _extract_emails_from_text(html)
         emails = _filter_emails_by_provider(raw_emails, first_name, last_name, website_url)
+        # Optionally narrow to the named provider's own mailbox (drop info@ etc.).
+        if personal_emails_only:
+            emails = _filter_personal_emails(emails, first_name, last_name)
         enrichment.emails = emails
         # MX-verify for charge-on-success billing (verified-email vs email-found).
         enrichment.verified_emails = _verify_emails(emails)
