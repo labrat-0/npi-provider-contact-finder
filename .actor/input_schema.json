@@ -161,7 +161,7 @@
             "sectionDescription": "Enhance provider data with contact information from practice websites and social media. Increases runtime but provides actionable leads.",
             "title": "📧 Enable Email Enrichment",
             "type": "boolean",
-            "description": "Scrape practice websites for email addresses (office, billing, manager contacts). Adds $0.30/1K contacts to pricing.",
+            "description": "Temporarily unavailable while we improve enrichment quality and pricing; runs currently return base NPI data only. (When active: scrape practice websites for email addresses — office, billing, manager contacts.)",
             "default": false,
             "editor": "checkbox"
         },

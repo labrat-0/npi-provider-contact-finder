@@ -18,11 +18,35 @@ logger = logging.getLogger(__name__)
 
 FREE_TIER_LIMIT = 25
 
+# Global kill-switch for paid contact enrichment. Each enriched provider fires
+# Google SERP proxy calls (~$6-13 per 1K results) that exceed current realized
+# revenue, so enrichment runs at a structural loss. Disabled until enrichment is
+# repriced or redesigned to skip the paid search. Flip to False to restore normal
+# enrichment behavior (per-user opt-in via the enable* input flags).
+ENRICHMENT_DISABLED = True
+
 
 async def main() -> None:
     async with Actor:
         raw_input = await Actor.get_input() or {}
         config = ScraperInput.from_actor_input(raw_input)
+
+        # Hard-disable all enrichment globally (cost stopgap). Overrides any
+        # user input; the actor still returns full base NPI data. With these
+        # flags off, the proxy setup below and the scraper's enrichment calls
+        # are skipped, so no paid SERP calls are made.
+        if ENRICHMENT_DISABLED and (
+            config.enable_email_enrichment
+            or config.enable_linkedin_enrichment
+            or config.enable_social_media_enrichment
+        ):
+            config.enable_email_enrichment = False
+            config.enable_linkedin_enrichment = False
+            config.enable_social_media_enrichment = False
+            Actor.log.info(
+                "Contact enrichment is temporarily disabled; returning base NPI "
+                "data only. No web search or proxy usage will occur this run."
+            )
 
         # Handle CSV/JSON file upload for bulk_lookup mode
         if config.mode == ScrapingMode.BULK_LOOKUP and not config.npi_numbers:

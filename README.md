@@ -339,7 +339,9 @@ All enrichment options work the same in bulk mode.
 A National Provider Identifier — a unique 10-digit ID assigned to every licensed US healthcare provider by CMS. Over 6 million active NPIs in the registry cover physicians, nurses, dentists, therapists, and healthcare organizations.
 
 **Is this free to use?**
-Yes — the first 25 results per run are free and include full base NPI data (name, address, specialty, NPI Registry link). Contact enrichment (emails, LinkedIn, social profiles) runs on a paid plan; subscribe to unlock enrichment plus unlimited results (up to 1,000 per run).
+Yes — the first 25 results per run are free and include full base NPI data (name, address, specialty, NPI Registry link). Subscribe to the actor for unlimited results (up to 1,000 per run).
+
+> **Note:** Contact enrichment (emails, LinkedIn, social profiles) is temporarily paused while we improve its quality and pricing. Runs return base NPI data only; the enrichment options are inactive until it returns.
 
 **How does email enrichment work?**
 The actor runs a web search (Google, routed through Apify Proxy) to find the provider's practice website, then scrapes that site for email addresses, classifying them as office, billing, or general contact. It also extracts any social media links and the provider's LinkedIn profile. Success depends on whether the practice has a publicly accessible website.
