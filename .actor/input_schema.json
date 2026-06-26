@@ -168,7 +168,7 @@
         "enableLinkedInEnrichment": {
             "title": "💼 Enable LinkedIn Enrichment",
             "type": "boolean",
-            "description": "Search for provider LinkedIn profiles. Useful for B2B outreach and relationship building. Adds $0.50/1K contacts to pricing. Note: this runs a second web search per provider on top of website discovery, so it roughly doubles the per-lead search cost.",
+            "description": "Deprecated and no longer billed. Dedicated LinkedIn profile search has been removed; any LinkedIn URL found for free on the practice website is still returned. This option has no effect.",
             "default": false,
             "editor": "checkbox"
         },

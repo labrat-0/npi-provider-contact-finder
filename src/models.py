@@ -170,6 +170,9 @@ class ContactEnrichment(BaseModel):
     
     # Email contacts
     emails: list[str] = Field(default_factory=list)
+    # Subset of `emails` whose domain passed an MX deliverability check. Drives
+    # the verified-email vs email-found billing event (charge-on-success).
+    verified_emails: list[str] = Field(default_factory=list)
     primary_email: str = ""
     office_email: str = ""
     billing_email: str = ""

@@ -145,6 +145,59 @@ def _filter_emails_by_provider(
     return [e for e in emails if _email_belongs_to_provider(e, first, last, website_url)]
 
 
+# Per-run cache of domain -> has-MX-record, so we resolve each mail domain once.
+_MX_CACHE: dict[str, bool] = {}
+
+
+def _domain_has_mx(domain: str) -> bool:
+    """
+    True if the domain has a deliverable mail setup (MX, or A as RFC-5321
+    fallback). Result cached per domain for the process. DNS-only — no SMTP
+    handshake, so it is fast and never touches the recipient's mail server.
+    Returns False on any resolver error (treat unverifiable as unverified).
+    """
+    domain = domain.lower().strip()
+    if not domain:
+        return False
+    if domain in _MX_CACHE:
+        return _MX_CACHE[domain]
+
+    ok = False
+    try:
+        import dns.resolver  # dnspython; optional dependency
+
+        resolver = dns.resolver.Resolver()
+        resolver.lifetime = 5.0
+        resolver.timeout = 5.0
+        try:
+            answers = resolver.resolve(domain, "MX")
+            ok = len(answers) > 0
+        except dns.resolver.NoAnswer:
+            # No MX is valid per RFC 5321 if an A/AAAA record exists.
+            try:
+                resolver.resolve(domain, "A")
+                ok = True
+            except Exception:
+                ok = False
+    except Exception as e:  # ImportError or any DNS failure -> unverified
+        logger.debug(f"MX check unavailable/failed for {domain}: {e}")
+        ok = False
+
+    _MX_CACHE[domain] = ok
+    return ok
+
+
+def _verify_emails(emails: list[str]) -> list[str]:
+    """Return the subset of emails whose domain passes the MX deliverability
+    check. Used to bill verified-email vs email-found (charge-on-success)."""
+    verified = []
+    for email in emails:
+        domain = email.rpartition("@")[2]
+        if domain and _domain_has_mx(domain):
+            verified.append(email)
+    return verified
+
+
 def _extract_social_urls(html: str, base_url: str) -> dict[str, str]:
     """Extract social media URLs from HTML."""
     soup = BeautifulSoup(html, 'html.parser')
@@ -396,6 +449,71 @@ async def _discover_practice_website(
     return "", None
 
 
+# Org-name suffixes that don't belong in a domain guess.
+_ORG_DOMAIN_STOPWORDS = frozenset([
+    'llc', 'pllc', 'inc', 'pc', 'pa', 'pllp', 'llp', 'ltd', 'corp',
+    'the', 'and', 'of', 'a',
+])
+
+
+def _domain_candidates(org_name: str) -> list[str]:
+    """
+    Build a few plausible domain guesses from an organization name.
+
+    "Cantu Family Medicine PLLC" -> ["cantufamilymedicine.com",
+    "cantufamilymedicine.org", "cantufamilymedicine.net"]. Returns [] when the
+    name is too short/generic to guess safely (precision over recall).
+    """
+    words = [
+        re.sub(r'[^a-z0-9]', '', w.lower())
+        for w in org_name.split()
+    ]
+    words = [w for w in words if w and w not in _ORG_DOMAIN_STOPWORDS]
+    if not words:
+        return []
+    slug = ''.join(words)
+    # Too short -> too generic (risk of squatters / wrong site). Skip.
+    if len(slug) < 8:
+        return []
+    return [f"{slug}.com", f"{slug}.org", f"{slug}.net"]
+
+
+async def _guess_practice_domain(
+    org_name: str,
+    client: httpx.AsyncClient,
+    rate_limiter: RateLimiter,
+    timeout: int = 10,
+) -> str:
+    """
+    Try to resolve a practice website by guessing its domain and fetching it
+    directly (no proxy, no paid SERP). Returns the live URL on a confident hit,
+    else "". Free skip-SERP waterfall stage: most branded practices own the
+    obvious domain, so this avoids a paid search for them.
+    """
+    for candidate in _domain_candidates(org_name):
+        url = "https://" + candidate
+        try:
+            await rate_limiter.wait()
+            resp = await client.get(
+                url,
+                timeout=timeout,
+                follow_redirects=True,
+                headers={'User-Agent': 'Mozilla/5.0 (compatible; NPIContactFinder/1.0)'},
+            )
+            if resp.status_code != 200:
+                continue
+            if 'html' not in resp.headers.get('content-type', '').lower():
+                continue
+            final_url = str(resp.url)
+            if _is_directory_url(final_url):
+                continue
+            logger.info(f"Domain-guess hit for {org_name!r}: {final_url}")
+            return final_url
+        except Exception:
+            continue
+    return ""
+
+
 async def enrich_provider_contacts(
     provider_data: dict[str, Any],
     client: httpx.AsyncClient,
@@ -490,15 +608,24 @@ async def enrich_provider_contacts(
                 f"({city}, {state}): {practice_website or 'no website'}"
             )
         else:
-            practice_website, discovery_error = await _discover_practice_website(
-                provider_name=provider_name,
-                city=city,
-                state=state,
-                client=search_client,
-                rate_limiter=rate_limiter,
-                timeout=timeout,
-            )
-            # Cache only successful searches (error=None); a failed search
+            # Stage 3 (free): guess the org's domain and fetch it directly — no
+            # proxy, no paid SERP. Only for org-named records (individual-name
+            # guesses are too noisy). Falls through to paid search on miss.
+            if org:
+                practice_website = await _guess_practice_domain(
+                    org, client, rate_limiter, timeout
+                )
+            # Stage 4 (paid): Google SERP, last resort.
+            if not practice_website:
+                practice_website, discovery_error = await _discover_practice_website(
+                    provider_name=provider_name,
+                    city=city,
+                    state=state,
+                    client=search_client,
+                    rate_limiter=rate_limiter,
+                    timeout=timeout,
+                )
+            # Cache only successful resolutions (error=None); a failed search
             # (block/timeout) should be retried for the next provider.
             if website_cache is not None and discovery_error is None:
                 website_cache[cache_key] = practice_website
@@ -527,23 +654,10 @@ async def enrich_provider_contacts(
         enrichment.website_scrape_error = "No practice website found"
         logger.info(f"Contact enrichment for NPI {npi}: no website discovered")
 
-    # --- Step 4: LinkedIn discovery (independent of website) ---
-    if enable_linkedin and not enrichment.linkedin_profile_url and provider_name:
-        linkedin_url = await search_linkedin_profile(
-            provider_name=provider_name,
-            city=city,
-            state=state,
-            credential=credential,
-            client=search_client,
-            rate_limiter=rate_limiter,
-            timeout=timeout,
-            first_name=first,
-            last_name=last,
-        )
-        if linkedin_url:
-            enrichment.linkedin_profile_url = linkedin_url
-            if linkedin_url not in enrichment.enrichment_sources:
-                enrichment.enrichment_sources = enrichment.enrichment_sources + [linkedin_url]
+    # NOTE: paid LinkedIn profile search was removed — it required a second
+    # paid SERP per provider and could not be priced profitably. Any LinkedIn
+    # URL still comes free from the scraped website HTML (see enrich_provider_website),
+    # as an unbilled bonus field.
 
     return enrichment
 
@@ -602,6 +716,8 @@ async def enrich_provider_website(
         raw_emails = _extract_emails_from_text(html)
         emails = _filter_emails_by_provider(raw_emails, first_name, last_name, website_url)
         enrichment.emails = emails
+        # MX-verify for charge-on-success billing (verified-email vs email-found).
+        enrichment.verified_emails = _verify_emails(emails)
         # Observability: distinguish "page had no emails" from "name filter
         # dropped them all". If many are dropped, discovery may be landing on
         # shared/roster pages (expected) — or the filter is too strict (bug).
