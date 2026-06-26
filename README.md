@@ -312,14 +312,15 @@ All enrichment options work the same in bulk mode.
 |---|---|---|---|
 | `maxResults` | integer | `100` | Max providers to return (1–1000). Free tier: 25 per run. |
 
-**Contact Enrichment**
+**Contact Enrichment** *(available on a paid plan — free runs return base NPI data only)*
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `enableEmailEnrichment` | boolean | `false` | Scrape practice websites for email addresses (office, billing, general). |
-| `enableLinkedInEnrichment` | boolean | `false` | Search for provider LinkedIn profiles. |
+| `enableLinkedInEnrichment` | boolean | `false` | Search for provider LinkedIn profiles. Runs a second web search per provider, so it roughly doubles per-lead search cost. |
 | `enableSocialMediaEnrichment` | boolean | `false` | Extract Facebook, Twitter, Instagram, Healthgrades, Vitals, and Zocdoc links. |
 | `emailEnrichmentTimeout` | integer | `10` | Timeout per website scrape (seconds). Lower = faster, may miss some emails. |
+| `maxEnrichmentResults` | integer | `50` | Cap on providers enriched per run (each fires a web search). Providers past the cap still return base NPI data. Raise it for larger enriched runs. |
 
 **Advanced**
 
@@ -338,7 +339,7 @@ All enrichment options work the same in bulk mode.
 A National Provider Identifier — a unique 10-digit ID assigned to every licensed US healthcare provider by CMS. Over 6 million active NPIs in the registry cover physicians, nurses, dentists, therapists, and healthcare organizations.
 
 **Is this free to use?**
-The first 25 results per run are free. Subscribe to the actor for unlimited results (up to 1,000 per run).
+Yes — the first 25 results per run are free and include full base NPI data (name, address, specialty, NPI Registry link). Contact enrichment (emails, LinkedIn, social profiles) runs on a paid plan; subscribe to unlock enrichment plus unlimited results (up to 1,000 per run).
 
 **How does email enrichment work?**
 The actor runs a web search (Google, routed through Apify Proxy) to find the provider's practice website, then scrapes that site for email addresses, classifying them as office, billing, or general contact. It also extracts any social media links and the provider's LinkedIn profile. Success depends on whether the practice has a publicly accessible website.

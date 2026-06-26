@@ -185,6 +185,9 @@ class NPIProviderScraper:
         self.headers = build_headers()
         self.timeout = float(config.timeout_secs)
         self.retries = config.max_retries
+        # Per-run cache of (name, city, state) -> discovered website URL, so
+        # providers sharing a practice don't each pay for a duplicate SERP.
+        self._website_cache: dict[tuple[str, str, str], str] = {}
 
     def _build_params(self, skip: int = 0) -> dict[str, Any]:
         """Build NPPES API query parameters from config."""
@@ -304,6 +307,7 @@ class NPIProviderScraper:
                             enable_linkedin=self.config.enable_linkedin_enrichment,
                             enable_social=self.config.enable_social_media_enrichment,
                             search_client=self.search_client,
+                            website_cache=self._website_cache,
                         )
                         record.contact_enrichment = enrichment
                     except Exception as e:
@@ -380,6 +384,7 @@ class NPIProviderScraper:
                         enable_linkedin=self.config.enable_linkedin_enrichment,
                         enable_social=self.config.enable_social_media_enrichment,
                         search_client=self.search_client,
+                        website_cache=self._website_cache,
                     )
                     record.contact_enrichment = enrichment
                 except Exception as e:

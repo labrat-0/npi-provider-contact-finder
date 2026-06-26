@@ -404,6 +404,7 @@ async def enrich_provider_contacts(
     enable_linkedin: bool = False,
     enable_social: bool = False,
     search_client: httpx.AsyncClient | None = None,
+    website_cache: dict[tuple[str, str, str], str] | None = None,
 ) -> ContactEnrichment:
     """
     Enrich provider with contact information from practice website.
@@ -417,6 +418,10 @@ async def enrich_provider_contacts(
         enable_social: Whether to extract all social media URLs
         search_client: HTTP client for web search (proxied). Falls back to
             ``client`` when not provided.
+        website_cache: Optional per-run cache mapping (name, city, state) to the
+            discovered website URL. Avoids re-running the paid website-discovery
+            SERP for providers that share the same name/location (e.g. multiple
+            records for one practice). A cached "" means "searched, none found".
 
     Returns:
         ContactEnrichment record with discovered contacts
@@ -475,14 +480,28 @@ async def enrich_provider_contacts(
     # --- Step 2: Discover website via search if not already found ---
     discovery_error: str | None = None
     if not practice_website and provider_name:
-        practice_website, discovery_error = await _discover_practice_website(
-            provider_name=provider_name,
-            city=city,
-            state=state,
-            client=search_client,
-            rate_limiter=rate_limiter,
-            timeout=timeout,
-        )
+        # Reuse a prior discovery result for the same (name, city, state) to
+        # avoid paying for a duplicate website-discovery SERP within one run.
+        cache_key = (provider_name.lower(), city.lower(), state.lower())
+        if website_cache is not None and cache_key in website_cache:
+            practice_website = website_cache[cache_key]
+            logger.info(
+                f"Website discovery cache hit for {provider_name} "
+                f"({city}, {state}): {practice_website or 'no website'}"
+            )
+        else:
+            practice_website, discovery_error = await _discover_practice_website(
+                provider_name=provider_name,
+                city=city,
+                state=state,
+                client=search_client,
+                rate_limiter=rate_limiter,
+                timeout=timeout,
+            )
+            # Cache only successful searches (error=None); a failed search
+            # (block/timeout) should be retried for the next provider.
+            if website_cache is not None and discovery_error is None:
+                website_cache[cache_key] = practice_website
 
     # --- Step 3: Scrape the discovered website ---
     if practice_website:

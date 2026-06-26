@@ -71,6 +71,24 @@ async def main() -> None:
                 "Subscribe to the actor for unlimited results."
             )
 
+            # Paid contact enrichment fires per-provider Google SERP proxy calls,
+            # which cost the developer real platform usage. Free-tier runs return
+            # $0 revenue, so enriching them loses money on every call. Disable all
+            # enrichment for non-paying users; they still get full base NPI data.
+            if (
+                config.enable_email_enrichment
+                or config.enable_linkedin_enrichment
+                or config.enable_social_media_enrichment
+            ):
+                config.enable_email_enrichment = False
+                config.enable_linkedin_enrichment = False
+                config.enable_social_media_enrichment = False
+                Actor.log.info(
+                    "Contact enrichment requires a paid plan; returning base NPI "
+                    "data only. Subscribe to the actor to enable email, LinkedIn, "
+                    "and social enrichment."
+                )
+
         # Override config max_results with the effective limit
         config.max_results = max_results
 
