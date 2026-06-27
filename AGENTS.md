@@ -33,30 +33,30 @@ in `src/billing.py` MUST match the Apify Console monetization config exactly.
 | `verified-email` | email passed MX check (instead of `email-found`) | $0.020 |
 | `apify-actor-start` | per run | $0.01 |
 
-Keep **"User pays platform usage costs: No"** in the console. Invariant: every
-search-driven event is priced above its amortized cost, and base+phone come from
-free NPPES data — so **no run can lose money** ("no-bleed"). Do not reintroduce a
-flat per-result charge or an unconditional paid search per provider; that
-combination is not sustainable under this monetization model (see the spec below).
+Keep **"User pays platform usage costs: Yes"** in the console (both Pay-Per-Event
+and Usage toggles must be ON together — Apify Console couples them). With this
+model the user's bill is event prices + platform costs, and every event cent is
+pure developer margin. Do not reintroduce a flat per-result charge; that
+combination is not sustainable (see the spec below).
 
 ## CURRENT STATE (critical — read before deploying)
 
 - The Actor is on **maintenance** on Apify (paused).
 - Enrichment is **hard-disabled**: `ENRICHMENT_DISABLED = True` in `src/main.py`
-  (a cost stopgap). Runs return base provider data (records + phone) only; no paid
-  web search runs.
-- The Apify Console still has the **old flat pricing**; the new pay-per-event
-  prices above are **not set yet**. Pay-per-event price changes take **~2 weeks**
-  to take effect on Apify.
+  (a cost stopgap). Runs return base provider data (records + phone) only; no
+  paid web search runs.
+- Pay-per-event prices were **configured in Console on 2026-06-27**:
+  `provider-record=$0.001`, `phone-found=$0.003`, `email-found=$0.012`,
+  `verified-email=$0.020`, `apify-actor-start=$0.01`.
+  The old `apify-default-dataset-item` was removed. Prices take **~2 weeks**
+  to propagate (expected live ~2026-07-11). User pays platform usage = Yes.
 - All code is on `main`. Nothing has been `apify push`ed since this rework.
 
 ## Deploy sequence (next steps)
 
-1. In the Apify Console Monetization tab, create the 5 events above (exact ids),
-   remove the old `apify-default-dataset-item` event, keep platform-usage = No.
-   This starts the ~2-week clock.
-2. When the new prices are live: set `ENRICHMENT_DISABLED = False` in
-   `src/main.py`.
+1. Prices were configured on 2026-06-27. Wait **~2 weeks** for propagation.
+2. When the new prices are live (target ~2026-07-11): set
+   `ENRICHMENT_DISABLED = False` in `src/main.py`.
 3. `apify push` to build, then take the Actor off maintenance.
 4. Watch next-day Apify Insights for positive margin; spot-check that a run's
    charge count matches its dataset rows.
