@@ -24,7 +24,7 @@ FREE_TIER_LIMIT = 25
 # revenue, so enrichment runs at a structural loss. Disabled until enrichment is
 # repriced or redesigned to skip the paid search. Flip to False to restore normal
 # enrichment behavior (per-user opt-in via the enable* input flags).
-ENRICHMENT_DISABLED = True
+ENRICHMENT_DISABLED = False
 
 
 async def _push_and_charge(batch: list[dict], charging_enabled: bool) -> bool:

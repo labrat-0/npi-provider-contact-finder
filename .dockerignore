@@ -1,0 +1,11 @@
+.git/
+.gitignore
+README.md
+docs/
+tests/
+__pycache__/
+*.pyc
+*.pyo
+.env
+AGENTS.md
+DEPLOYMENT_INFO.md
