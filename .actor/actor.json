@@ -2,9 +2,13 @@
     "actorSpecification": 1,
     "name": "npi-provider-contact-finder",
     "title": "NPI Provider Contact Finder",
-    "version": "2.1.0",
+    "version": "2.1",
     "description": "Generate healthcare sales leads with verified provider contacts. Find doctor emails, LinkedIn profiles, and practice websites from NPPES NPI Registry. Perfect for medical device sales, pharma outreach, healthcare marketing.",
-    "categories": ["HEALTHCARE", "LEAD_GENERATION", "BUSINESS_INTELLIGENCE"],
+    "categories": [
+        "HEALTHCARE",
+        "LEAD_GENERATION",
+        "BUSINESS_INTELLIGENCE"
+    ],
     "buildTag": "latest",
     "input": "./input_schema.json",
     "output": "./output_schema.json",
