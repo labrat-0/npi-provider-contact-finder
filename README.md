@@ -5,7 +5,6 @@
 [![Apify](https://img.shields.io/badge/Apify-available-4dff8a)](https://apify.com/labrat011/npi-provider-contact-finder)
 [![NPPES](https://img.shields.io/badge/source-NPPES%20NPI%20Registry-blue)](https://npiregistry.cms.hhs.gov/)
 
----
 
 ## What This Actor Does
 
@@ -28,7 +27,7 @@ This actor searches the **official NPPES NPI Registry** (maintained by CMS/HHS) 
 | **Multiple search modes** | Search by name, NPI number, organization, specialty, or location |
 | **Batch lookups** | Upload CSV/JSON files with up to thousands of NPI numbers |
 | **Bulk specialty search** | Run multiple specialty searches in one go with automatic dedup |
-| **Contact enrichment** | Discovers practice website emails, social media, and LinkedIn profiles |
+| **Contact enrichment** | Practice website email discovery, social media, LinkedIn profiles, and MX verification |
 | **Email verification** | MX-record verification for deliverability confidence |
 | **Comprehensive output** | Full NPI data: taxonomy codes, addresses, phone/fax, identifiers, endpoints |
 | **Pay-per-event pricing** | Only pay for the data you use — no subscriptions, no monthly commitments |
@@ -74,23 +73,19 @@ This actor searches the **official NPPES NPI Registry** (maintained by CMS/HHS) 
 
 ## Pricing
 
-Pay-per-event — you only pay for what you use.
+This actor uses pay-per-event (PPE) pricing. You pay only for what the actor actually finds — not every provider has a phone or email, so your cost scales with how much contact data exists for your query.
 
 | Event | Price | When Charged |
 |-------|-------|-------------|
-| **Provider Record** | **$3.00 / 1K records** | Every NPPES provider record returned |
-| **Phone Found** | $1.00 / 1K records | Record includes a practice phone number |
-| **Email Found** | $2.00 / 1K records | Email discovered from practice website |
-| **Verified Email** | $4.00 / 1K records | MX-verified deliverable email address |
+| **Actor Start** | $0.01 per run | Charged once per run |
+| **Provider Record** | **$1.00 / 1K records** | Every NPPES provider record returned |
+| **Phone Found** | $3.00 / 1K records | Record has a practice phone number |
+| **Email Found** | $12.00 / 1K records | Email discovered from practice website |
+| **Verified Email** | $20.00 / 1K records | MX-verified deliverable email address |
 
-**Example**: Searching for 500 cardiologists in Texas:
-- 500 provider records → $1.50
-- ~480 have phone numbers → +$0.48
-- ~200 with discovered emails → +$0.40
-- **Total: ~$2.38 for 500 qualified leads**
+Platform usage (proxy/compute) is billed to your account in addition to the above.
 
 *Prices subject to change with 14-day notice as per Apify platform policy.*
-
 ---
 
 ## Output Schema
@@ -144,7 +139,7 @@ Each provider record returns:
 
 ## Enrichment Notes
 
-Contact enrichment (email and website discovery) uses public Google search results routed through Apify's Google SERP proxy. Enrichment is opt-in (`enableEmailEnrichment: true`) and is recommended for paid users running targeted searches. The actor caps enrichment to 50 providers per run to control costs.
+Contact enrichment (email and website discovery) uses public Google search results routed through Apify's Google SERP proxy. Enrichment is opt-in (`enableEmailEnrichment: true`) and is recommended for paid users running targeted searches. Defaults to 50 enriched providers per run, adjustable up to 100,000 via the `maxEnrichmentResults` input parameter.
 
 Free tier runs always return base NPI data without enrichment — subscribe for enriched results.
 
