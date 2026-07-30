@@ -48,10 +48,17 @@ This actor searches the **official NPPES NPI Registry** (maintained by CMS/HHS) 
 | Mode | Description | Example |
 |------|-------------|---------|
 | `search_providers` | Search individual providers by name + location | Last name "Smith" in "NY" |
-| `get_provider` | Look up a specific provider by NPI number | NPI `1234567890` |
+| `get_provider` | Look up a specific provider by NPI number | NPI `1881018208` (Mayo Clinic) |
 | `search_organizations` | Find hospitals, clinics, and group practices | Organization name "Mayo Clinic" |
-| `search_by_specialty` | Find providers by specialty/taxonomy | "Cardiology" in "TX" |
+| `search_by_specialty` | Find providers by specialty/taxonomy | "Cardiovascular Disease" in "TX" |
 | `bulk_lookup` | Upload a CSV/JSON list of NPI numbers | 500 NPIs from your CRM export |
+
+> **Specialty values must match the NUCC taxonomy description.** The registry
+> matches on the description text, so `"Cardiovascular Disease"` finds
+> cardiologists while `"Cardiology"` mostly returns *pharmacists* whose taxonomy
+> is "Pharmacist, Cardiology". Likewise it is `"Orthopaedic Surgery"` (British
+> spelling) — `"Orthopedic Surgery"` returns nothing. A trailing wildcard works
+> after two characters, e.g. `"Derm*"`.
 
 ### Input Parameters
 
@@ -90,7 +97,8 @@ Platform usage (proxy/compute) is billed to your account in addition to the abov
 
 ## Output Schema
 
-Each provider record returns:
+Each provider record returns (values below are illustrative, not a real
+provider; `primary_specialty` carries the full NUCC taxonomy description):
 
 ```json
 {
@@ -99,7 +107,7 @@ Each provider record returns:
   "first_name": "Jane",
   "last_name": "Smith",
   "credential": "MD",
-  "primary_specialty": "Cardiology",
+  "primary_specialty": "Internal Medicine, Cardiovascular Disease",
   "practice_address_city": "Rochester",
   "practice_address_state": "MN",
   "addresses": [

@@ -52,13 +52,13 @@
     "npiNumber": {
       "title": "\ud83e\udeaa NPI Number",
       "type": "string",
-      "description": "10-digit NPI number for direct lookup (get_provider mode).",
+      "description": "10-digit NPI number for direct lookup (get_provider mode). Example: 1881018208 (Mayo Clinic). Note that location filters are ignored in this mode.",
       "editor": "textfield"
     },
     "npiNumbers": {
       "title": "\ud83d\udccb NPI Numbers (bulk)",
       "type": "array",
-      "description": "JSON array of 10-digit NPI numbers for bulk_lookup mode. Example: [\"1234567890\", \"0987654321\"]",
+      "description": "JSON array of 10-digit NPI numbers for bulk_lookup mode. Example: [\"1881018208\", \"1275791162\"] (Mayo Clinic, Cleveland Clinic). Every value must be exactly 10 digits or the run fails.",
       "editor": "json",
       "items": {
         "type": "string"
