@@ -32,9 +32,8 @@
       "sectionDescription": "Provide search criteria based on your selected mode.",
       "title": "\ud83d\udd0e Search query",
       "type": "string",
-      "description": "General search term. Used as last name (search_providers), organization name (search_organizations), or specialty (search_by_specialty) depending on mode. For multiple searches in one run, use 'searchQueriesList' instead.",
-      "editor": "textfield",
-      "prefill": "Smith"
+      "description": "General search term. Used as last name (search_providers), organization name (search_organizations), or specialty (search_by_specialty) depending on mode. For multiple searches in one run, use 'searchQueriesList' instead. Prefer the mode-specific field (Last Name / Organization Name / Specialty) when you know which one you want.",
+      "editor": "textfield"
     },
     "searchQueriesList": {
       "title": "\ud83d\udd0e Batch Search Queries",
@@ -45,8 +44,8 @@
         "type": "string"
       },
       "prefill": [
-        "Cardiology",
-        "Oncology"
+        "Dermatology",
+        "Dentist"
       ]
     },
     "npiNumber": {
@@ -91,7 +90,7 @@
     "taxonomyDescription": {
       "title": "\ud83e\ude7a Specialty / Taxonomy",
       "type": "string",
-      "description": "Specialty or taxonomy description (e.g., 'Cardiology', 'Internal Medicine', 'Oncology'). Used in search_by_specialty mode.",
+      "description": "NUCC taxonomy description, matched against the description text (e.g. 'Dermatology', 'Dentist', 'Family Medicine', 'Cardiovascular Disease'). A trailing wildcard works after two characters, e.g. 'Derm*'. Note it must match the NUCC wording: 'Cardiovascular Disease' finds cardiologists while 'Cardiology' mostly returns pharmacists, and it is 'Orthopaedic Surgery' - the American spelling returns nothing. Used in search_by_specialty mode.",
       "editor": "textfield"
     },
     "city": {

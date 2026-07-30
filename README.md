@@ -122,7 +122,7 @@ provider; `primary_specialty` carries the full NUCC taxonomy description):
   "taxonomies": [
     {
       "code": "207RC0000X",
-      "description": "Cardiovascular Disease",
+      "description": "Internal Medicine, Cardiovascular Disease",
       "primary": true
     }
   ],
