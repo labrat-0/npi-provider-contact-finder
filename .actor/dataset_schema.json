@@ -290,6 +290,12 @@
                         "items": { "type": "string" },
                         "nullable": true
                     },
+                    "verified_emails": {
+                        "type": "array",
+                        "description": "Emails that passed MX-record verification. Billed as the verified-email event.",
+                        "items": { "type": "string" },
+                        "nullable": true
+                    },
                     "primary_email": { "type": "string", "nullable": true },
                     "office_email": { "type": "string", "nullable": true },
                     "billing_email": { "type": "string", "nullable": true },
@@ -361,6 +367,107 @@
                     "status": { "label": "Status", "format": "text" },
                     "npi_registry_url": { "label": "Registry URL", "format": "link" },
                     "contact_enrichment": { "label": "Contacts", "format": "object" }
+                }
+            }
+        },
+        "specialty-roster": {
+            "title": "Provider Roster",
+            "transformation": {
+                "fields": [
+                    "npi_number",
+                    "first_name",
+                    "last_name",
+                    "credential",
+                    "primary_specialty",
+                    "practice_address_city",
+                    "practice_address_state",
+                    "status",
+                    "npi_registry_url"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "npi_number": { "label": "NPI", "format": "text" },
+                    "first_name": { "label": "First Name", "format": "text" },
+                    "last_name": { "label": "Last Name", "format": "text" },
+                    "credential": { "label": "Credential", "format": "text" },
+                    "primary_specialty": { "label": "Specialty", "format": "text" },
+                    "practice_address_city": { "label": "City", "format": "text" },
+                    "practice_address_state": { "label": "State", "format": "text" },
+                    "status": { "label": "Status", "format": "text" },
+                    "npi_registry_url": { "label": "Registry URL", "format": "link" }
+                }
+            }
+        },
+        "organizations": {
+            "title": "Organizations",
+            "transformation": {
+                "fields": [
+                    "npi_number",
+                    "organization_name",
+                    "primary_specialty",
+                    "authorized_official_first_name",
+                    "authorized_official_last_name",
+                    "authorized_official_title",
+                    "authorized_official_telephone",
+                    "practice_address_city",
+                    "practice_address_state",
+                    "npi_registry_url"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "npi_number": { "label": "NPI", "format": "text" },
+                    "organization_name": { "label": "Organization", "format": "text" },
+                    "primary_specialty": { "label": "Specialty", "format": "text" },
+                    "authorized_official_first_name": { "label": "Official First Name", "format": "text" },
+                    "authorized_official_last_name": { "label": "Official Last Name", "format": "text" },
+                    "authorized_official_title": { "label": "Official Title", "format": "text" },
+                    "authorized_official_telephone": { "label": "Official Phone", "format": "text" },
+                    "practice_address_city": { "label": "City", "format": "text" },
+                    "practice_address_state": { "label": "State", "format": "text" },
+                    "npi_registry_url": { "label": "Registry URL", "format": "link" }
+                }
+            }
+        },
+        "email-leads": {
+            "title": "Email Leads",
+            "transformation": {
+                "flatten": ["contact_enrichment"],
+                "fields": [
+                    "npi_number",
+                    "first_name",
+                    "last_name",
+                    "credential",
+                    "primary_specialty",
+                    "practice_address_city",
+                    "practice_address_state",
+                    "contact_enrichment.primary_email",
+                    "contact_enrichment.verified_emails",
+                    "contact_enrichment.emails",
+                    "contact_enrichment.practice_website",
+                    "contact_enrichment.linkedin_profile_url",
+                    "npi_registry_url"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "npi_number": { "label": "NPI", "format": "text" },
+                    "first_name": { "label": "First Name", "format": "text" },
+                    "last_name": { "label": "Last Name", "format": "text" },
+                    "credential": { "label": "Credential", "format": "text" },
+                    "primary_specialty": { "label": "Specialty", "format": "text" },
+                    "practice_address_city": { "label": "City", "format": "text" },
+                    "practice_address_state": { "label": "State", "format": "text" },
+                    "contact_enrichment.primary_email": { "label": "Primary Email", "format": "text" },
+                    "contact_enrichment.verified_emails": { "label": "Verified Emails", "format": "array" },
+                    "contact_enrichment.emails": { "label": "All Emails", "format": "array" },
+                    "contact_enrichment.practice_website": { "label": "Practice Website", "format": "link" },
+                    "contact_enrichment.linkedin_profile_url": { "label": "LinkedIn", "format": "link" },
+                    "npi_registry_url": { "label": "Registry URL", "format": "link" }
                 }
             }
         }
